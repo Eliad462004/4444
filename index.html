@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>כורה הכוכבים 🤖</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#05050f;
+    font-family:'Segoe UI', 'Arial Hebrew', Arial, sans-serif; user-select:none; -webkit-user-select:none; }
+  #game { position:fixed; inset:0; touch-action:none; cursor:pointer; }
+
+  /* ---- HUD ---- */
+  #topbar {
+    position:fixed; top:10px; right:0; left:0; display:flex; flex-direction:column;
+    align-items:center; gap:4px; pointer-events:none; z-index:10;
+  }
+  #money {
+    font-size:34px; font-weight:800; color:#ffd94a;
+    text-shadow:0 0 18px rgba(255,200,60,.55), 0 2px 4px rgba(0,0,0,.8);
+    transition:transform .1s;
+  }
+  #money.pop { transform:scale(1.18); }
+  #income { font-size:14px; color:#9ecbff; text-shadow:0 1px 3px #000; }
+  #robotBadge {
+    font-size:13px; color:#e8e8ff; background:rgba(20,25,60,.65); border:1px solid rgba(120,140,255,.35);
+    padding:3px 12px; border-radius:20px; margin-top:2px; display:none; text-shadow:0 1px 2px #000;
+  }
+  #energyWrap {
+    width:160px; height:10px; background:rgba(0,0,0,.55); border-radius:6px; margin-top:4px;
+    border:1px solid rgba(120,220,255,.4); overflow:hidden; display:none;
+  }
+  #energyBar { height:100%; width:100%; border-radius:6px;
+    background:linear-gradient(90deg,#2de0ff,#7dffb0); transition:width .15s linear; }
+
+  /* ---- upgrade panel ---- */
+  #panel {
+    position:fixed; left:10px; top:90px; bottom:10px; width:210px; z-index:10;
+    display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding:4px;
+    scrollbar-width:thin;
+  }
+  .card {
+    background:linear-gradient(145deg, rgba(28,32,70,.92), rgba(14,16,40,.92));
+    border:1px solid rgba(110,130,255,.35); border-radius:14px; padding:10px;
+    color:#fff; cursor:pointer; text-align:center; transition:transform .1s, border-color .2s;
+    animation:reveal .5s ease; flex-shrink:0;
+  }
+  @keyframes reveal { from { opacity:0; transform:translateY(18px) scale(.9);} to { opacity:1; transform:none; } }
+  .card:hover { transform:scale(1.04); border-color:rgba(160,180,255,.8); }
+  .card:active { transform:scale(.96); }
+  .card.cant { opacity:.55; filter:grayscale(.4); }
+  .card .icon { font-size:38px; line-height:1.15; filter:drop-shadow(0 0 8px rgba(140,160,255,.6)); }
+  .card .name { font-size:15px; font-weight:700; margin-top:2px; }
+  .card .desc { font-size:11px; color:#aab6e8; margin-top:1px; }
+  .card .lvl  { font-size:11px; color:#ffd94a; margin-top:2px; }
+  .card .cost {
+    margin-top:6px; font-size:14px; font-weight:700; color:#ffd94a;
+    background:rgba(0,0,0,.35); border-radius:8px; padding:4px;
+  }
+  #travelBtn {
+    display:none; background:linear-gradient(145deg,#5a2a8a,#2a1a5a); border:1px solid #b06aff;
+    box-shadow:0 0 18px rgba(160,80,255,.5); animation:reveal .5s ease, pulseGlow 1.6s infinite alternate;
+  }
+  @keyframes pulseGlow { from { box-shadow:0 0 10px rgba(160,80,255,.35);} to { box-shadow:0 0 26px rgba(180,110,255,.8);} }
+
+  /* ---- banner ---- */
+  #banner {
+    position:fixed; top:22%; right:0; left:0; text-align:center; pointer-events:none; z-index:20;
+    font-size:26px; font-weight:800; color:#fff; opacity:0; transition:opacity .4s;
+    text-shadow:0 0 20px rgba(120,200,255,.9), 0 2px 6px #000;
+  }
+  #banner.show { opacity:1; }
+
+  /* ---- overlays ---- */
+  .overlay {
+    position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center;
+    flex-direction:column; gap:18px; background:rgba(3,3,12,.55); backdrop-filter:blur(2px);
+  }
+  .overlay.show { display:flex; }
+  .overlay h2 { color:#fff; font-size:26px; text-shadow:0 0 16px rgba(120,180,255,.8); }
+  #planetChoices { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  .planetOpt {
+    width:150px; padding:16px 10px; border-radius:18px; text-align:center; cursor:pointer;
+    background:linear-gradient(160deg, rgba(30,35,80,.95), rgba(12,14,36,.95));
+    border:1px solid rgba(130,150,255,.4); color:#fff; transition:transform .15s;
+  }
+  .planetOpt:hover { transform:scale(1.08); border-color:#fff; }
+  .planetOpt .ball { width:84px; height:84px; border-radius:50%; margin:0 auto 10px; box-shadow:inset -14px -12px 24px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.18); }
+  .planetOpt .pname { font-weight:700; font-size:16px; }
+  .planetOpt .ptag { font-size:12px; color:#ffd94a; margin-top:4px; }
+  #offlineBox {
+    background:linear-gradient(160deg,#1c2246,#0e1030); border:1px solid rgba(130,150,255,.5);
+    border-radius:18px; padding:26px 34px; color:#fff; text-align:center; max-width:320px;
+  }
+  #offlineBox .big { font-size:30px; color:#ffd94a; font-weight:800; margin:10px 0; }
+  #offlineBox button, #resetBox button {
+    margin-top:14px; padding:10px 26px; font-size:16px; font-weight:700; border:none; border-radius:12px;
+    background:linear-gradient(145deg,#3a6aff,#2340b0); color:#fff; cursor:pointer;
+  }
+  #resetBox { background:linear-gradient(160deg,#46201c,#30100e); border:1px solid rgba(255,130,130,.5);
+    border-radius:18px; padding:26px 34px; color:#fff; text-align:center; }
+  #resetBox .no { background:linear-gradient(145deg,#555,#333); margin-right:10px; }
+
+  /* ---- corner buttons ---- */
+  #corner { position:fixed; top:10px; left:10px; z-index:15; display:flex; gap:8px; }
+  .cbtn {
+    width:38px; height:38px; border-radius:10px; border:1px solid rgba(130,150,255,.35);
+    background:rgba(15,18,45,.7); color:#fff; font-size:18px; cursor:pointer;
+  }
+
+  @media (max-width:640px) {
+    #panel { top:auto; left:0; right:0; bottom:0; width:auto; height:158px;
+      flex-direction:row; overflow-x:auto; overflow-y:hidden; padding:8px; gap:8px; }
+    .card { width:128px; flex-shrink:0; padding:7px; }
+    .card .icon { font-size:30px; }
+    #money { font-size:28px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="topbar">
+  <div id="money">💰 0</div>
+  <div id="income"></div>
+  <div id="robotBadge"></div>
+  <div id="energyWrap"><div id="energyBar"></div></div>
+</div>
+
+<div id="panel"></div>
+<div id="banner"></div>
+
+<div id="corner">
+  <button class="cbtn" id="muteBtn" title="צליל">🔊</button>
+  <button class="cbtn" id="resetBtn" title="איפוס">🗑️</button>
+</div>
+
+<div class="overlay" id="spaceOverlay">
+  <h2>בחר כוכב חדש 🚀</h2>
+  <div id="planetChoices"></div>
+</div>
+
+<div class="overlay" id="offlineOverlay">
+  <div id="offlineBox">
+    <div style="font-size:40px">🤖💤</div>
+    <div>בזמן שלא היית, הרובוט המשיך לכרות!</div>
+    <div class="big" id="offlineAmount"></div>
+    <button id="offlineOk">מעולה! 🎉</button>
+  </div>
+</div>
+
+<div class="overlay" id="resetOverlay">
+  <div id="resetBox">
+    <div style="font-size:34px">⚠️</div>
+    <div>לאפס את כל ההתקדמות?</div>
+    <button id="resetYes">כן, אפס הכול</button>
+    <button class="no" id="resetNo">ביטול</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================================================================
+   כורה הכוכבים — משחק קליקר בחלל
+   רובוט עם אישיות, כוכב שמתפתח, קריסטל מסתורי ומסע בין כוכבים
+================================================================ */
+
+// ---------- configuration ----------
+const UPGRADES = [
+  { id:'pick',    icon:'⛏️', name:'מקוש משודרג',   desc:'+1 לכל לחיצה',              base:15,     growth:1.35, unlock:0 },
+  { id:'miner',   icon:'🤖', name:'רובוט כורה',     desc:'+1 מטבע לשנייה',            base:60,     growth:1.22, unlock:100 },
+  { id:'reactor', icon:'⚡', name:'כור אנרגיה',     desc:'+2 אנרגיה/שנ׳ · +10% הכנסה', base:500,    growth:1.6,  unlock:1000 },
+  { id:'drone',   icon:'🚀', name:'רחפן כרייה',     desc:'+8 מטבעות לשנייה',          base:3000,   growth:1.28, unlock:8000 },
+  { id:'drill',   icon:'🛠️', name:'מקדחה קוונטית', desc:'+25 לכל לחיצה',             base:12000,  growth:1.4,  unlock:40000 },
+  { id:'fleet',   icon:'🛸', name:'צי כרייה',       desc:'+60 מטבעות לשנייה',         base:75000,  growth:1.35, unlock:150000 },
+];
+
+const TIERS = [
+  { lvl:0,   name:'רובוט צעיר',    body:'#8fa8c8', accent:'#4a6a9a', scale:1.0,  drill:false, shoulder:false, glow:false },
+  { lvl:10,  name:'רובוט משוריין', body:'#9ac89a', accent:'#3a7a4a', scale:1.08, drill:false, shoulder:true,  glow:false },
+  { lvl:25,  name:'רובוט מקדח',    body:'#d8b060', accent:'#8a6a20', scale:1.16, drill:true,  shoulder:true,  glow:false },
+  { lvl:50,  name:'רובוט קרבי',    body:'#c86a5a', accent:'#7a2a20', scale:1.28, drill:true,  shoulder:true,  glow:false },
+  { lvl:100, name:'רובוט ענק',     body:'#b08ae0', accent:'#5a3a9a', scale:1.5,  drill:true,  shoulder:true,  glow:true  },
+  { lvl:200, name:'רובוט עתידני',  body:'#6ae0ff', accent:'#1a6a9a', scale:1.65, drill:true,  shoulder:true,  glow:true  },
+];
+
+const STAGES = [
+  { at:0,       key:'dead',    msg:null },
+  { at:400,     key:'grass',   msg:'🌱 צמחייה ראשונה מופיעה על הכוכב!' },
+  { at:4000,    key:'factory', msg:'🏭 מפעלים נבנים על הכוכב!' },
+  { at:30000,   key:'city',    msg:'🏙️ עיר מתפתחת על הכוכב!' },
+  { at:200000,  key:'living',  msg:'🌍 הכוכב הפך לעולם חי!' },
+  { at:1000000, key:'future',  msg:'🌌 הכוכב הגיע לעידן העתיד!' },
+];
+
+const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
+const DEST_PLANETS = [
+  { name:'מאדים האדום', colors:['#5a241a','#94422a','#c9673f'], css:'radial-gradient(circle at 35% 30%, #d9825a, #7a3020 70%)', bonus:{click:2,   auto:1  }, tag:'פי 2 כוח לחיצה' },
+  { name:'כוכב הקרח',   colors:['#16324e','#3f6f96','#9fd2e8'], css:'radial-gradient(circle at 35% 30%, #bfe4f4, #2a5a80 70%)', bonus:{click:1,   auto:2  }, tag:'פי 2 הכנסה אוטומטית' },
+  { name:'כוכב הזהב',   colors:['#57431c','#9a7c2e','#e2c260'], css:'radial-gradient(circle at 35% 30%, #f4dc80, #7a5c20 70%)', bonus:{click:1.5, auto:1.5}, tag:'פי 1.5 לכל ההכנסות' },
+];
+
+const SAVE_KEY = 'starMiner.save.v1';
+
+// ---------- state ----------
+let S = defaultState();
+function defaultState() {
+  return {
+    money:0, totalEarned:0, earnedPlanet:0,
+    levels:{}, robotXP:0,
+    energy:100, energyShown:false,
+    clicks:0,
+    prestClick:1, prestAuto:1,
+    visits:0, planetColors:HOME_PLANET.colors, planetName:HOME_PLANET.name,
+    cracked:false, crystalMult:1,
+    stage:0, unlocked:{pick:true},
+    muted:false, lastSeen:Date.now(),
+  };
+}
+
+function scaleFactor() { return Math.pow(10, S.visits); }
+function crackAt()  { return 20000  * scaleFactor(); }
+function travelAt() { return 120000 * scaleFactor(); }
+function stageAt(i) { return STAGES[i].at * scaleFactor(); }
+
+function lvl(id) { return S.levels[id] || 0; }
+function cost(u) { return Math.ceil(u.base * scaleFactor() * Math.pow(u.growth, lvl(u.id))); }
+function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult; }
+function perClick() { return (1 + lvl('pick') + 25 * lvl('drill')) * incomeMult() * S.prestClick; }
+function perSec()   { return (lvl('miner') + 8 * lvl('drone') + 60 * lvl('fleet')) * incomeMult() * S.prestAuto; }
+function robotTier() {
+  let t = TIERS[0];
+  for (const c of TIERS) if (S.robotXP >= c.lvl) t = c;
+  return t;
+}
+
+// ---------- canvas setup ----------
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+let planet = { cx:0, cy:0, R:0 };
+let nebulaCanvas = null;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const topY = H * 0.42;
+  planet.R = Math.max(W * 0.75, H * 1.15);
+  planet.cx = W / 2;
+  planet.cy = topY + planet.R;
+  renderNebula();
+  buildStars();
+}
+window.addEventListener('resize', resize);
+
+// ---------- background ----------
+let stars = [], meteors = [], ships = [];
+function buildStars() {
+  stars = [];
+  const n = Math.floor(W * H / 3800);
+  for (let i = 0; i < n; i++) stars.push({
+    x:Math.random()*W, y:Math.random()*H*0.9,
+    r:Math.random()*1.4+0.3, p:Math.random()*Math.PI*2, s:0.5+Math.random()*2,
+  });
+}
+function renderNebula() {
+  nebulaCanvas = document.createElement('canvas');
+  nebulaCanvas.width = W; nebulaCanvas.height = H;
+  const c = nebulaCanvas.getContext('2d');
+  c.fillStyle = '#05050f'; c.fillRect(0,0,W,H);
+  const blobs = [
+    { x:W*0.2, y:H*0.25, r:W*0.45, col:'rgba(60,30,120,0.35)' },
+    { x:W*0.8, y:H*0.15, r:W*0.4,  col:'rgba(20,60,120,0.3)' },
+    { x:W*0.55, y:H*0.5, r:W*0.5,  col:'rgba(90,20,80,0.18)' },
+  ];
+  for (const b of blobs) {
+    const g = c.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    g.addColorStop(0,b.col); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle = g; c.fillRect(0,0,W,H);
+  }
+}
+let nebulaDrift = 0;
+
+function spawnMeteor() {
+  meteors.push({ x:Math.random()*W*1.2, y:-20, vx:-(2+Math.random()*3), vy:2+Math.random()*2.5, life:1 });
+}
+function spawnShip() {
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  ships.push({ x:dir>0?-30:W+30, y:H*(0.05+Math.random()*0.3), vx:dir*(0.25+Math.random()*0.35), t:0 });
+}
+
+// ---------- surface features ----------
+let features = [];
+function seededAngles(count, seed) {
+  const out = [];
+  let s = seed;
+  for (let i = 0; i < count; i++) {
+    s = (s * 9301 + 49297) % 233280;
+    out.push((s / 233280 - 0.5) * 1.1);
+  }
+  return out;
+}
+function addFeatures(stageIdx) {
+  const key = STAGES[stageIdx].key;
+  const defs = {
+    grass:   { n:10, type:'grass' },
+    factory: { n:4,  type:'factory' },
+    city:    { n:5,  type:'building' },
+    living:  { n:7,  type:'tree' },
+    future:  { n:4,  type:'spire' },
+  };
+  const d = defs[key];
+  if (!d) return;
+  const angles = seededAngles(d.n, stageIdx * 77 + 13 + S.visits * 31);
+  for (const a of angles) {
+    if (Math.abs(a) < 0.05) continue; // keep robot spot clear
+    features.push({ a, type:d.type, born:now, size:0.8 + Math.random()*0.5, seed:Math.random() });
+  }
+}
+function rebuildFeatures() {
+  features = [];
+  for (let i = 1; i <= S.stage; i++) addFeatures(i);
+  for (const f of features) f.born = -10; // fully grown on load
+}
+
+// ---------- particles / effects ----------
+let particles = [], floats = [], bolts = [];
+let shake = 0, flash = 0;
+
+function surfacePoint(a) {
+  return { x: planet.cx + planet.R * Math.sin(a), y: planet.cy - planet.R * Math.cos(a) };
+}
+
+function burstRocks(x, y, power) {
+  const n = Math.min(4 + Math.floor(power/2), 14);
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      type:'rock', x, y, vx:(Math.random()-0.5)*6, vy:-(2+Math.random()*5),
+      g:0.25, life:1, decay:0.02+Math.random()*0.02,
+      size:2+Math.random()*4, rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.3,
+      col: S.planetColors[Math.floor(Math.random()*3)],
+    });
+  }
+}
+function burstSparks(x, y, n, col) {
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random()*Math.PI*2, sp = 1+Math.random()*4;
+    particles.push({ type:'spark', x, y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp-1.5,
+      g:0.08, life:1, decay:0.04+Math.random()*0.04, size:1+Math.random()*2, col:col||'#ffe27a' });
+  }
+}
+function burstCoins(x, y, n) {
+  for (let i = 0; i < Math.min(n,10); i++) {
+    particles.push({ type:'coin', x, y, vx:(Math.random()-0.5)*5, vy:-(4+Math.random()*4),
+      g:0.3, life:1, decay:0.001, size:5+Math.random()*3, t:0, homing:false });
+  }
+}
+function addFloat(x, y, text, col, size) {
+  floats.push({ x, y, vy:-1.2, life:1, text, col:col||'#ffd94a', size:size||18 });
+}
+function addBolt(x1, y1, x2, y2) {
+  const pts = [{x:x1,y:y1}];
+  const seg = 5;
+  for (let i = 1; i < seg; i++) {
+    const t = i/seg;
+    pts.push({ x:x1+(x2-x1)*t+(Math.random()-0.5)*18, y:y1+(y2-y1)*t+(Math.random()-0.5)*10 });
+  }
+  pts.push({x:x2,y:y2});
+  bolts.push({ pts, life:1 });
+}
+
+// ---------- robot ----------
+const robot = { bob:0, hitT:0, jumpT:0, blink:0, happy:0, sitting:false };
+
+function drawRobot(t) {
+  const tier = robotTier();
+  const p = surfacePoint(0);
+  const sc = tier.scale * Math.min(1, W/500 * 0.9 + 0.35);
+  const bob = Math.sin(t*2.2)*3;
+  let jump = 0;
+  if (robot.jumpT > 0) jump = Math.sin(robot.jumpT * Math.PI) * 34;
+  const hit = robot.hitT; // 1 -> 0
+  const sit = robot.sitting ? 1 : 0;
+
+  ctx.save();
+  ctx.translate(p.x, p.y - jump);
+  ctx.scale(sc, sc);
+  if (hit > 0) ctx.rotate(hit * 0.12);
+  const squash = 1 - sit*0.22 + (robot.jumpT>0 ? 0.08 : 0);
+  ctx.scale(1 + sit*0.12, squash);
+
+  const body = tier.body, accent = tier.accent;
+
+  // glow for high tiers
+  if (tier.glow) {
+    ctx.shadowColor = body; ctx.shadowBlur = 26;
+  }
+
+  // legs (hidden when sitting)
+  if (!robot.sitting) {
+    ctx.fillStyle = accent;
+    roundRect(-13, -14, 8, 14, 3); ctx.fill();
+    roundRect(5, -14, 8, 14, 3); ctx.fill();
+  }
+  const baseY = robot.sitting ? -8 : -14;
+
+  // body
+  const g = ctx.createLinearGradient(0,-60,0,baseY);
+  g.addColorStop(0, body); g.addColorStop(1, accent);
+  ctx.fillStyle = g;
+  roundRect(-20, baseY-34+bob*0.2, 40, 34, 9); ctx.fill();
+  // chest light
+  ctx.fillStyle = robot.sitting ? '#f0a040' : '#7dffb0';
+  ctx.beginPath(); ctx.arc(0, baseY-17+bob*0.2, 4.5, 0, Math.PI*2); ctx.fill();
+
+  // shoulders
+  if (tier.shoulder) {
+    ctx.fillStyle = accent;
+    roundRect(-27, baseY-34+bob*0.2, 9, 14, 4); ctx.fill();
+    roundRect(18, baseY-34+bob*0.2, 9, 14, 4); ctx.fill();
+  }
+
+  // arms — drill arm on left (screen), hammer motion
+  ctx.save();
+  ctx.translate(-20, baseY-26+bob*0.2);
+  ctx.rotate(-0.3 - hit*1.5);
+  ctx.fillStyle = accent;
+  roundRect(-5, 0, 8, 20, 3); ctx.fill();
+  if (tier.drill) {
+    ctx.fillStyle = '#d8d8e8';
+    ctx.beginPath();
+    ctx.moveTo(-7, 20); ctx.lineTo(5, 20); ctx.lineTo(-1, 34); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = accent; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      const yy = 22 + i*4 + ((t*30) % 4);
+      if (yy < 33) { ctx.beginPath(); ctx.moveTo(-6+yy*0.35, yy); ctx.lineTo(4-yy*0.3, yy); ctx.stroke(); }
+    }
+  } else {
+    ctx.fillStyle = '#c8c8d8';
+    roundRect(-7, 18, 12, 10, 3); ctx.fill(); // pick head
+  }
+  ctx.restore();
+  // other arm
+  ctx.fillStyle = accent;
+  roundRect(15, baseY-26+bob*0.2, 7, 18, 3); ctx.fill();
+
+  // head
+  const hy = baseY - 34 + bob*0.55;
+  ctx.fillStyle = g;
+  roundRect(-16, hy-24, 32, 24, 8); ctx.fill();
+  // visor
+  ctx.fillStyle = '#101828';
+  roundRect(-12, hy-19, 24, 13, 6); ctx.fill();
+  // eyes
+  const blink = robot.blink > 0 ? 0.15 : 1;
+  const eyeCol = robot.sitting ? '#f0a040' : (robot.happy > 0 ? '#7dffb0' : '#5ad8ff');
+  ctx.fillStyle = eyeCol;
+  ctx.shadowColor = eyeCol; ctx.shadowBlur = 8;
+  ctx.beginPath(); ctx.ellipse(-6, hy-12.5, 3, 3*blink, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(6, hy-12.5, 3, 3*blink, 0, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = tier.glow ? 26 : 0;
+
+  // antenna
+  ctx.strokeStyle = accent; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(0, hy-24); ctx.lineTo(0, hy-32); ctx.stroke();
+  ctx.fillStyle = Math.sin(t*4) > 0 ? '#ff5a5a' : '#8a2a2a';
+  ctx.beginPath(); ctx.arc(0, hy-34, 3, 0, Math.PI*2); ctx.fill();
+
+  // zzz when sitting
+  if (robot.sitting) {
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.font = '14px Arial';
+    ctx.fillText('💤', 20, hy - 30 + Math.sin(t*2)*3);
+  }
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+// ---------- planet drawing ----------
+function drawPlanet(t, scale, colorsOverride) {
+  const colors = colorsOverride || S.planetColors;
+  const R = planet.R * scale;
+  const cy = scale === 1 ? planet.cy : (H + R * 0.4);
+  const cx = planet.cx;
+
+  // atmosphere glow
+  ctx.save();
+  const glowStage = Math.min(S.stage, 5);
+  const glowCol = ['rgba(120,110,100,', 'rgba(120,200,120,', 'rgba(180,160,120,', 'rgba(150,180,255,', 'rgba(100,220,180,', 'rgba(120,180,255,'][glowStage];
+  const ag = ctx.createRadialGradient(cx, cy, R*0.97, cx, cy, R*1.06);
+  ag.addColorStop(0, glowCol + '0.35)');
+  ag.addColorStop(1, glowCol + '0)');
+  ctx.fillStyle = ag;
+  ctx.beginPath(); ctx.arc(cx, cy, R*1.06, 0, Math.PI*2); ctx.fill();
+
+  // body
+  const pg = ctx.createRadialGradient(cx, cy - R*0.85, R*0.1, cx, cy, R);
+  pg.addColorStop(0, colors[2]);
+  pg.addColorStop(0.25, colors[1]);
+  pg.addColorStop(1, colors[0]);
+  ctx.fillStyle = pg;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
+
+  if (scale < 0.5) { ctx.restore(); return; } // details skipped when small
+
+  // craters
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  const craterAngles = [-0.42, -0.2, 0.16, 0.38, 0.55, -0.6];
+  craterAngles.forEach((a, i) => {
+    const sp = { x: cx + R * Math.sin(a), y: cy - R * Math.cos(a) };
+    ctx.beginPath();
+    ctx.ellipse(sp.x, sp.y + 14 + i*4, 16 + i*5, 7 + i*2, a, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // green tint when alive
+  if (S.stage >= 4) {
+    ctx.fillStyle = 'rgba(60,160,90,0.18)';
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fill();
+  }
+
+  // features on surface
+  for (const f of features) {
+    const grow = Math.min(1, (now - f.born) / 1.2);
+    if (grow <= 0) continue;
+    const sp = surfacePoint(f.a);
+    ctx.save();
+    ctx.translate(sp.x, sp.y);
+    ctx.rotate(f.a);
+    ctx.scale(f.size * grow, f.size * grow);
+    drawFeature(f, t);
+    ctx.restore();
+  }
+
+  // cracks + crystal
+  if (S.cracked || crackAnim.active) drawCrackAndCrystal(t);
+
+  // planetary ring in future stage
+  if (S.stage >= 5) {
+    ctx.strokeStyle = 'rgba(120,220,255,0.5)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([14, 20]);
+    ctx.lineDashOffset = -t * 30;
+    ctx.beginPath(); ctx.arc(cx, cy, R + 26, -Math.PI*0.85, -Math.PI*0.15); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+function drawFeature(f, t) {
+  switch (f.type) {
+    case 'grass':
+      ctx.strokeStyle = '#4aa84a'; ctx.lineWidth = 2;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i*4, 2);
+        ctx.quadraticCurveTo(i*4 + i*2, -6, i*5 + Math.sin(t*2+f.seed*9)*1.5, -11);
+        ctx.stroke();
+      }
+      break;
+    case 'tree':
+      ctx.fillStyle = '#6a4a2a';
+      ctx.fillRect(-2.5, -18, 5, 20);
+      ctx.fillStyle = '#3a9a4a';
+      ctx.beginPath(); ctx.arc(0, -24, 12, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#5aba5a';
+      ctx.beginPath(); ctx.arc(-5, -28, 7, 0, Math.PI*2); ctx.fill();
+      break;
+    case 'factory':
+      ctx.fillStyle = '#5a5a6a';
+      ctx.fillRect(-16, -22, 32, 24);
+      ctx.fillStyle = '#44444f';
+      ctx.fillRect(6, -38, 8, 18);
+      ctx.fillStyle = '#ffd94a';
+      ctx.fillRect(-11, -16, 6, 6); ctx.fillRect(-1, -16, 6, 6);
+      // smoke puffs
+      ctx.fillStyle = 'rgba(180,180,190,0.5)';
+      for (let i = 0; i < 3; i++) {
+        const ph = ((t*0.4 + f.seed + i*0.33) % 1);
+        ctx.beginPath(); ctx.arc(10 + ph*8, -40 - ph*22, 3 + ph*5, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'building': {
+      const hgt = 34 + f.seed * 26;
+      ctx.fillStyle = '#3a4258';
+      ctx.fillRect(-10, -hgt, 20, hgt + 2);
+      ctx.fillStyle = '#ffe27a';
+      for (let yy = 6; yy < hgt - 4; yy += 9)
+        for (let xx = -7; xx <= 3; xx += 7)
+          if ((f.seed * 13 + yy + xx) % 3 > 0.9) ctx.fillRect(xx, -yy - 5, 4, 5);
+      break;
+    }
+    case 'spire': {
+      const hgt = 44 + f.seed * 30;
+      ctx.fillStyle = '#2a3a5a';
+      ctx.beginPath();
+      ctx.moveTo(-8, 2); ctx.lineTo(8, 2); ctx.lineTo(2, -hgt); ctx.lineTo(-2, -hgt);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(120,220,255,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, -hgt); ctx.lineTo(0, 0); ctx.stroke();
+      const pulse = (Math.sin(t*3 + f.seed*8) + 1) / 2;
+      ctx.fillStyle = `rgba(120,220,255,${0.5 + pulse*0.5})`;
+      ctx.shadowColor = '#5ad8ff'; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(0, -hgt - 4, 3.5, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      break;
+    }
+  }
+}
+
+// ---------- crystal / crack event ----------
+const crackAnim = { active:false, t:0 };
+const CRYSTAL_ANGLE = -0.3;
+
+function drawCrackAndCrystal(t) {
+  const prog = crackAnim.active ? Math.min(1, crackAnim.t / 2) : 1;
+  const sp = surfacePoint(CRYSTAL_ANGLE);
+
+  // cracks
+  ctx.save();
+  ctx.strokeStyle = `rgba(255,150,60,${0.5 + Math.sin(t*3)*0.2})`;
+  ctx.shadowColor = '#ff9a3c'; ctx.shadowBlur = 10;
+  ctx.lineWidth = 2.5;
+  const arms = [[-1,0.3],[1,0.35],[-0.5,0.8],[0.6,0.75],[0.1,1]];
+  for (const [dx, dm] of arms) {
+    ctx.beginPath();
+    ctx.moveTo(sp.x, sp.y);
+    let px = sp.x, py = sp.y;
+    const segs = Math.floor(5 * prog) + 1;
+    for (let i = 0; i < segs; i++) {
+      px += dx * (12 + i*6) + Math.sin(i*7 + t) * 3;
+      py += dm * (10 + i*5);
+      ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // crystal rises
+  const rise = crackAnim.active ? Math.max(0, (crackAnim.t - 1.2) / 1.8) : 1;
+  if (rise > 0) {
+    const h = 52 * rise;
+    ctx.save();
+    ctx.translate(sp.x, sp.y);
+    ctx.rotate(CRYSTAL_ANGLE);
+    ctx.shadowColor = '#5affe8'; ctx.shadowBlur = 24 + Math.sin(t*2.5)*8;
+    const cg = ctx.createLinearGradient(0, -h, 0, 0);
+    cg.addColorStop(0, '#c8fff4'); cg.addColorStop(0.5, '#42e8d0'); cg.addColorStop(1, '#1a8a90');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(0, -h);
+    ctx.lineTo(14, -h*0.55); ctx.lineTo(10, 4); ctx.lineTo(-10, 4); ctx.lineTo(-14, -h*0.55);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(0, 4); ctx.stroke();
+    ctx.restore();
+    if (Math.random() < 0.15) {
+      burstSparks(sp.x + (Math.random()-0.5)*24, sp.y - Math.random()*40, 1, '#7affec');
+    }
+  }
+}
+
+function triggerCrack() {
+  crackAnim.active = true;
+  crackAnim.t = 0;
+  mode = 'crack';
+  sfx('rumble');
+}
+
+// ---------- rocket / travel cinematic ----------
+let mode = 'play'; // play | crack | liftoff | space | landing
+const cine = { t:0, targetPlanet:null };
+
+function drawRocket(x, y, angle, scale, flame) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(angle); ctx.scale(scale, scale);
+  if (flame > 0) {
+    const fl = 22 + Math.random()*14;
+    const fg = ctx.createLinearGradient(0, 22, 0, 22 + fl);
+    fg.addColorStop(0, '#ffdf6a'); fg.addColorStop(0.5, '#ff8a3c'); fg.addColorStop(1, 'rgba(255,80,40,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.moveTo(-7, 22); ctx.lineTo(7, 22); ctx.lineTo(0, 22 + fl); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#d8dce8';
+  ctx.beginPath();
+  ctx.moveTo(0, -30);
+  ctx.quadraticCurveTo(13, -8, 11, 20);
+  ctx.lineTo(-11, 20);
+  ctx.quadraticCurveTo(-13, -8, 0, -30);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#c8402a';
+  ctx.beginPath(); ctx.moveTo(-11, 20); ctx.lineTo(-19, 30); ctx.lineTo(-9, 26); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(11, 20); ctx.lineTo(19, 30); ctx.lineTo(9, 26); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, -30); ctx.quadraticCurveTo(6, -20, 5, -12); ctx.lineTo(-5, -12); ctx.quadraticCurveTo(-6, -20, 0, -30); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#5ad8ff';
+  ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath(); ctx.arc(-2, -2, 2.2, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function startTravel() {
+  mode = 'liftoff';
+  cine.t = 0;
+  document.getElementById('panel').style.display = 'none';
+  sfx('launch');
+}
+
+function chooseDest(p) {
+  cine.targetPlanet = p;
+  document.getElementById('spaceOverlay').classList.remove('show');
+  mode = 'landing';
+  cine.t = 0;
+}
+
+function landOnPlanet() {
+  const p = cine.targetPlanet;
+  S.prestClick *= p.bonus.click;
+  S.prestAuto  *= p.bonus.auto;
+  S.visits++;
+  S.planetColors = p.colors;
+  S.planetName = p.name;
+  S.levels = {};
+  S.energy = 100;
+  S.earnedPlanet = 0;
+  S.cracked = false;
+  S.crystalMult = 1;
+  S.stage = 0;
+  features = [];
+  mode = 'play';
+  document.getElementById('panel').style.display = '';
+  banner(`🪐 נחתת על ${p.name}! הבונוס פעיל לתמיד`);
+  renderPanel();
+  save();
+}
+
+// ---------- audio ----------
+let AC = null;
+function ensureAudio() {
+  if (!AC) {
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  if (AC && AC.state === 'suspended') AC.resume();
+}
+function tone(freq, dur, type, vol, slide) {
+  if (!AC || S.muted) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || 'square';
+  o.frequency.setValueAtTime(freq, AC.currentTime);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), AC.currentTime + dur);
+  g.gain.setValueAtTime(vol || 0.06, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + dur);
+  o.connect(g); g.connect(AC.destination);
+  o.start(); o.stop(AC.currentTime + dur);
+}
+function sfx(name) {
+  switch (name) {
+    case 'hit':   tone(150 + Math.random()*60, 0.07, 'square', 0.05, -80); break;
+    case 'coin':  tone(900, 0.06, 'sine', 0.05); setTimeout(() => tone(1350, 0.09, 'sine', 0.05), 50); break;
+    case 'buy':   [440, 550, 660].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'triangle', 0.07), i*70)); break;
+    case 'tier':  [330, 440, 550, 880].forEach((f, i) => setTimeout(() => tone(f, 0.14, 'triangle', 0.08), i*90)); break;
+    case 'rumble': tone(60, 1.4, 'sawtooth', 0.1, -20); break;
+    case 'crystal': [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'sine', 0.07), i*110)); break;
+    case 'launch': tone(90, 1.8, 'sawtooth', 0.09, 240); break;
+    case 'land':  tone(200, 0.5, 'sawtooth', 0.08, -140); break;
+  }
+}
+
+// ---------- UI ----------
+const moneyEl = document.getElementById('money');
+const incomeEl = document.getElementById('income');
+const badgeEl = document.getElementById('robotBadge');
+const energyWrap = document.getElementById('energyWrap');
+const energyBar = document.getElementById('energyBar');
+const panelEl = document.getElementById('panel');
+const bannerEl = document.getElementById('banner');
+
+function fmt(n) {
+  if (n < 1000) return Math.floor(n).toString();
+  const units = [['T',1e12],['B',1e9],['M',1e6],['K',1e3]];
+  for (const [u, v] of units) if (n >= v) return (n/v).toFixed(n/v >= 100 ? 0 : 1) + u;
+  return Math.floor(n).toString();
+}
+
+let bannerTimer = null;
+function banner(msg) {
+  bannerEl.textContent = msg;
+  bannerEl.classList.add('show');
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => bannerEl.classList.remove('show'), 3200);
+}
+
+function renderPanel() {
+  panelEl.innerHTML = '';
+  for (const u of UPGRADES) {
+    if (!S.unlocked[u.id]) continue;
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.id = 'card-' + u.id;
+    el.innerHTML = `
+      <div class="icon">${u.icon}</div>
+      <div class="name">${u.name}</div>
+      <div class="desc">${u.desc}</div>
+      <div class="lvl">רמה ${lvl(u.id)}</div>
+      <div class="cost">💰 ${fmt(cost(u))}</div>`;
+    el.addEventListener('pointerdown', e => { e.stopPropagation(); buy(u); });
+    panelEl.appendChild(el);
+  }
+  // travel button
+  if (S.earnedPlanet >= travelAt()) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.id = 'travelBtn';
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div class="icon">🚀</div>
+      <div class="name">מסע לכוכב חדש</div>
+      <div class="desc">השדרוגים מתאפסים, אבל תקבל בונוס הכנסה קבוע לתמיד!</div>
+      <div class="cost">המריאו! ✨</div>`;
+    el.addEventListener('pointerdown', e => { e.stopPropagation(); ensureAudio(); startTravel(); });
+    panelEl.appendChild(el);
+  }
+}
+
+function refreshCards() {
+  for (const u of UPGRADES) {
+    const el = document.getElementById('card-' + u.id);
+    if (!el) continue;
+    const c = cost(u);
+    el.classList.toggle('cant', S.money < c);
+    el.querySelector('.lvl').textContent = 'רמה ' + lvl(u.id);
+    el.querySelector('.cost').textContent = '💰 ' + fmt(c);
+  }
+}
+
+function buy(u) {
+  ensureAudio();
+  const c = cost(u);
+  if (S.money < c) { sfx('hit'); return; }
+  S.money -= c;
+  S.levels[u.id] = lvl(u.id) + 1;
+  const prevTier = robotTier();
+  S.robotXP++;
+  const newTier = robotTier();
+  robot.jumpT = 1;
+  robot.happy = 2;
+  sfx('buy');
+  const p = surfacePoint(0);
+  burstSparks(p.x, p.y - 40, 12, '#a0c8ff');
+  addFloat(p.x, p.y - 90, u.icon + ' ' + u.name + '!', '#a0c8ff', 16);
+  if (newTier !== prevTier) {
+    banner(`🤖 הרובוט התפתח: ${newTier.name}!`);
+    sfx('tier');
+    flash = 0.5;
+    burstSparks(p.x, p.y - 50, 30, '#ffe27a');
+  }
+  refreshCards();
+  refreshHud();
+  renderPanel(); // rebuild in case travel unlocked
+}
+
+function refreshHud() {
+  moneyEl.textContent = '💰 ' + fmt(S.money);
+  const ps = perSec();
+  incomeEl.textContent = ps > 0
+    ? `⚡ ${fmt(ps)} לשנייה · 👆 ${fmt(perClick())} ללחיצה`
+    : `👆 ${fmt(perClick())} ללחיצה`;
+  const tier = robotTier();
+  if (S.robotXP > 0) {
+    badgeEl.style.display = 'block';
+    badgeEl.textContent = `🤖 רמה ${S.robotXP} · ${tier.name}`;
+  }
+  if (S.energyShown) {
+    energyWrap.style.display = 'block';
+    energyBar.style.width = Math.max(0, S.energy) + '%';
+    energyBar.style.background = S.energy < 20
+      ? 'linear-gradient(90deg,#ff7a4a,#ffb04a)'
+      : 'linear-gradient(90deg,#2de0ff,#7dffb0)';
+  }
+}
+
+function popMoney() {
+  moneyEl.classList.add('pop');
+  setTimeout(() => moneyEl.classList.remove('pop'), 110);
+}
+
+// ---------- game logic ----------
+function checkUnlocks() {
+  let changed = false;
+  for (const u of UPGRADES) {
+    if (!S.unlocked[u.id] && S.totalEarned >= u.unlock * scaleFactor()) {
+      S.unlocked[u.id] = true;
+      changed = true;
+      banner(`✨ שדרוג חדש נפתח: ${u.icon} ${u.name}!`);
+    }
+  }
+  if (changed) renderPanel();
+}
+
+function checkStage() {
+  let target = 0;
+  for (let i = 0; i < STAGES.length; i++) if (S.earnedPlanet >= stageAt(i)) target = i;
+  while (S.stage < target) {
+    S.stage++;
+    addFeatures(S.stage);
+    if (STAGES[S.stage].msg) { banner(STAGES[S.stage].msg); flash = 0.35; sfx('tier'); }
+  }
+}
+
+function earn(amount, x, y) {
+  S.money += amount;
+  S.totalEarned += amount;
+  S.earnedPlanet += amount;
+  checkUnlocks();
+  checkStage();
+  if (!S.cracked && !crackAnim.active && S.earnedPlanet >= crackAt()) triggerCrack();
+  // travel availability may change
+  if (S.earnedPlanet >= travelAt() && !document.getElementById('travelBtn')) renderPanel();
+}
+
+function doClick(cx_, cy_) {
+  if (mode !== 'play') return;
+  ensureAudio();
+  S.clicks++;
+  const tier = robotTier();
+
+  // energy
+  let mult = 1;
+  if (S.energy >= 2) {
+    S.energy -= 2;
+    if (!S.energyShown && S.energy < 85) { S.energyShown = true; }
+  } else {
+    mult = 0.25;
+  }
+  robot.sitting = S.energy < 5;
+
+  const gain = perClick() * mult;
+  earn(gain);
+
+  const p = surfacePoint(0);
+  const ix = p.x - 26 * tier.scale, iy = p.y + 4;
+
+  robot.hitT = 1;
+  robot.happy = 1;
+  shake = Math.min(shake + 2.5 + S.robotXP * 0.04, 10);
+
+  burstRocks(ix, iy, S.robotXP * 0.3 + 3);
+  burstSparks(ix, iy, Math.min(3 + Math.floor(S.robotXP / 8), 12));
+  burstCoins(ix, iy - 8, Math.min(1 + Math.floor(S.robotXP / 15), 5));
+  addFloat(ix + (Math.random()-0.5)*40, iy - 50, '+' + fmt(gain), mult < 1 ? '#ff9a6a' : '#ffd94a',
+    16 + Math.min(S.robotXP * 0.1, 10));
+  if (tier.drill) addBolt(ix, iy, ix + (Math.random()-0.5)*60, iy - 30 - Math.random()*40);
+  sfx('hit');
+  if (Math.random() < 0.3) sfx('coin');
+  popMoney();
+  refreshHud();
+  refreshCards();
+}
+
+cv.addEventListener('pointerdown', e => {
+  doClick(e.clientX, e.clientY);
+});
+
+// ---------- save / load ----------
+function save() {
+  S.lastSeen = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e) {}
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    S = Object.assign(defaultState(), d);
+    return true;
+  } catch(e) { return false; }
+}
+setInterval(save, 5000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+
+// ---------- main loop ----------
+let now = 0, last = 0;
+let tutorialDone = false;
+
+function loop(ms) {
+  requestAnimationFrame(loop);
+  now = ms / 1000;
+  let dt = Math.min(now - last, 0.1);
+  if (!last) dt = 0.016;
+  last = now;
+
+  update(dt);
+  draw();
+}
+
+function update(dt) {
+  // passive income
+  const ps = perSec();
+  if (ps > 0 && mode === 'play') {
+    earn(ps * dt);
+  }
+
+  // energy regen
+  const regen = 6 + lvl('reactor') * 2;
+  S.energy = Math.min(100, S.energy + regen * dt);
+  if (S.energy > 15) robot.sitting = false;
+
+  // robot anim timers
+  if (robot.hitT > 0) robot.hitT = Math.max(0, robot.hitT - dt * 6);
+  if (robot.jumpT > 0) robot.jumpT = Math.max(0, robot.jumpT - dt * 2.4);
+  if (robot.happy > 0) robot.happy -= dt;
+  robot.blink -= dt;
+  if (robot.blink < -3 && Math.random() < 0.02) robot.blink = 0.15;
+
+  // background actors
+  if (Math.random() < dt * 0.25) spawnMeteor();
+  if (ships.length < 2 && Math.random() < dt * 0.06) spawnShip();
+  for (const m of meteors) { m.x += m.vx; m.y += m.vy; m.life -= dt * 0.4; }
+  meteors = meteors.filter(m => m.life > 0 && m.y < H);
+  for (const s of ships) { s.x += s.vx; s.t += dt; }
+  ships = ships.filter(s => s.x > -60 && s.x < W + 60);
+  nebulaDrift += dt * 2;
+
+  // particles
+  const moneyRect = moneyEl.getBoundingClientRect();
+  const tx = moneyRect.left + moneyRect.width / 2, ty = moneyRect.top + moneyRect.height / 2;
+  for (const p of particles) {
+    if (p.type === 'coin') {
+      p.t += dt;
+      if (p.t > 0.45) p.homing = true;
+      if (p.homing) {
+        const dx = tx - p.x, dy = ty - p.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 24) { p.life = 0; popMoney(); }
+        p.vx += (dx / d) * 2.4; p.vy += (dy / d) * 2.4;
+        p.vx *= 0.88; p.vy *= 0.88;
+      } else {
+        p.vy += p.g;
+      }
+      p.x += p.vx; p.y += p.vy;
+      if (p.t > 4) p.life = 0;
+    } else {
+      p.vy += p.g;
+      p.x += p.vx; p.y += p.vy;
+      p.life -= p.decay;
+      if (p.rot !== undefined) p.rot += p.vr;
+    }
+  }
+  particles = particles.filter(p => p.life > 0);
+
+  for (const f of floats) { f.y += f.vy; f.life -= dt * 0.9; }
+  floats = floats.filter(f => f.life > 0);
+  for (const b of bolts) b.life -= dt * 5;
+  bolts = bolts.filter(b => b.life > 0);
+
+  shake *= Math.pow(0.03, dt);
+  if (shake < 0.1) shake = 0;
+  if (flash > 0) flash = Math.max(0, flash - dt * 0.8);
+
+  // ---- cinematics ----
+  if (mode === 'crack') {
+    crackAnim.t += dt;
+    shake = Math.min(8, shake + dt * 20);
+    if (crackAnim.t > 1.1 && crackAnim.t - dt <= 1.1) { flash = 1; sfx('crystal'); }
+    if (crackAnim.t >= 3) {
+      crackAnim.active = false;
+      S.cracked = true;
+      S.crystalMult = 2;
+      mode = 'play';
+      const bonus = Math.max(1000 * scaleFactor(), perSec() * 90 + perClick() * 150);
+      S.money += bonus; S.totalEarned += bonus; S.earnedPlanet += bonus;
+      banner('💎 קריסטל ענק נחשף! כל ההכנסות הוכפלו + בונוס ' + fmt(bonus) + ' 💰');
+      const sp = surfacePoint(CRYSTAL_ANGLE);
+      burstCoins(sp.x, sp.y - 30, 10);
+      burstSparks(sp.x, sp.y - 30, 40, '#7affec');
+      checkUnlocks(); checkStage();
+      refreshHud(); refreshCards(); renderPanel();
+    }
+  } else if (mode === 'liftoff') {
+    cine.t += dt;
+    shake = Math.min(6, shake + dt * 10);
+    if (cine.t >= 2.6) {
+      mode = 'space';
+      cine.t = 0;
+      showPlanetChoices();
+    }
+  } else if (mode === 'space') {
+    cine.t += dt;
+  } else if (mode === 'landing') {
+    cine.t += dt;
+    if (cine.t >= 2.4) {
+      sfx('land');
+      shake = 8;
+      const p = surfacePoint(0);
+      burstRocks(p.x, p.y, 12);
+      landOnPlanet();
+    }
+  }
+}
+
+function showPlanetChoices() {
+  const box = document.getElementById('planetChoices');
+  box.innerHTML = '';
+  for (const p of DEST_PLANETS) {
+    const el = document.createElement('div');
+    el.className = 'planetOpt';
+    el.innerHTML = `
+      <div class="ball" style="background:${p.css}"></div>
+      <div class="pname">${p.name}</div>
+      <div class="ptag">${p.tag}</div>`;
+    el.addEventListener('pointerdown', () => chooseDest(p));
+    box.appendChild(el);
+  }
+  document.getElementById('spaceOverlay').classList.add('show');
+}
+
+// ---------- drawing ----------
+function draw() {
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random()-0.5) * shake, (Math.random()-0.5) * shake);
+
+  // nebula (drifting via offset draw twice)
+  const off = (nebulaDrift % W);
+  ctx.drawImage(nebulaCanvas, -off, 0);
+  ctx.drawImage(nebulaCanvas, W - off, 0);
+
+  // stars
+  const streak = (mode === 'liftoff' || mode === 'space' || mode === 'landing');
+  for (const s of stars) {
+    const tw = 0.4 + 0.6 * Math.abs(Math.sin(now * s.s + s.p));
+    ctx.fillStyle = `rgba(255,255,255,${tw})`;
+    if (streak) {
+      s.y += s.s * 6;
+      if (s.y > H) { s.y = 0; s.x = Math.random() * W; }
+      ctx.fillRect(s.x, s.y, 1.2, 6 + s.s * 4);
+    } else {
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r * tw, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // meteors
+  for (const m of meteors) {
+    const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.vx*8, m.y - m.vy*8);
+    grad.addColorStop(0, `rgba(255,230,180,${m.life})`);
+    grad.addColorStop(1, 'rgba(255,230,180,0)');
+    ctx.strokeStyle = grad; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx*8, m.y - m.vy*8); ctx.stroke();
+  }
+
+  // distant ships
+  for (const s of ships) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    if (s.vx < 0) ctx.scale(-1, 1);
+    ctx.fillStyle = 'rgba(160,180,220,0.7)';
+    ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-8, -4); ctx.lineTo(-8, 4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = Math.sin(s.t * 6) > 0 ? '#ff6a6a' : 'rgba(255,106,106,0.2)';
+    ctx.beginPath(); ctx.arc(-8, 0, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // scene per mode
+  if (mode === 'play' || mode === 'crack') {
+    drawPlanet(now, 1);
+    drawRobot(now);
+    // tutorial hint
+    if (!tutorialDone) {
+      if (S.clicks >= 5) tutorialDone = true;
+      else {
+        const p = surfacePoint(0);
+        const bo = Math.sin(now * 4) * 8;
+        ctx.font = '30px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('👆', p.x + 70, p.y - 100 + bo);
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillText('לחץ על הכוכב!', p.x + 70, p.y - 66 + bo);
+      }
+    }
+  } else if (mode === 'liftoff') {
+    const t = cine.t / 2.6;
+    const sc = 1 - t * 0.85;
+    drawPlanet(now, Math.max(0.15, sc));
+    const p = { x: planet.cx, y: H + planet.R * Math.max(0.15, sc) * 0.4 - planet.R * Math.max(0.15, sc) };
+    drawRocket(planet.cx, p.y - 30 - t * t * (H * 0.9), 0, 1, 1);
+  } else if (mode === 'space') {
+    drawRocket(W/2, H*0.8 + Math.sin(now*1.5)*8, 0, 0.8, 1);
+  } else if (mode === 'landing') {
+    const t = cine.t / 2.4;
+    const sc = 0.15 + t * 0.85;
+    drawPlanet(now, sc, cine.targetPlanet.colors);
+    const surfY = (H + planet.R*sc*0.4) - planet.R*sc;
+    const ry = H*0.05 + t * (surfY - 30 - H*0.05);
+    drawRocket(planet.cx, ry, Math.PI, 1, 1 - t*0.5);
+  }
+
+  // particles
+  for (const p of particles) {
+    if (p.type === 'rock') {
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.col;
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+      ctx.restore();
+    } else if (p.type === 'spark') {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.col;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'coin') {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      const sq = Math.abs(Math.sin(p.t * 9));
+      ctx.scale(Math.max(0.2, sq), 1);
+      ctx.fillStyle = '#ffd94a';
+      ctx.strokeStyle = '#b8901a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, p.size, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#b8901a';
+      ctx.font = `bold ${p.size}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('₪', 0, 1);
+      ctx.restore();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // bolts
+  for (const b of bolts) {
+    ctx.strokeStyle = `rgba(140,220,255,${b.life})`;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#5ad8ff'; ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(b.pts[0].x, b.pts[0].y);
+    for (const pt of b.pts) ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // floating text
+  ctx.textAlign = 'center';
+  for (const f of floats) {
+    ctx.globalAlpha = Math.max(0, Math.min(1, f.life));
+    ctx.font = `bold ${f.size}px Arial`;
+    ctx.fillStyle = f.col;
+    ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 4;
+    ctx.fillText(f.text, f.x, f.y);
+  }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+  // flash
+  if (flash > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${flash * 0.7})`;
+    ctx.fillRect(-20, -20, W + 40, H + 40);
+  }
+
+  ctx.restore();
+}
+
+// ---------- corner buttons ----------
+document.getElementById('muteBtn').addEventListener('click', () => {
+  S.muted = !S.muted;
+  document.getElementById('muteBtn').textContent = S.muted ? '🔇' : '🔊';
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('resetOverlay').classList.add('show');
+});
+document.getElementById('resetYes').addEventListener('click', () => {
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+});
+document.getElementById('resetNo').addEventListener('click', () => {
+  document.getElementById('resetOverlay').classList.remove('show');
+});
+document.getElementById('offlineOk').addEventListener('click', () => {
+  document.getElementById('offlineOverlay').classList.remove('show');
+});
+
+// ---------- boot ----------
+resize();
+const loaded = load();
+if (loaded) {
+  rebuildFeatures();
+  document.getElementById('muteBtn').textContent = S.muted ? '🔇' : '🔊';
+  // offline earnings
+  const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
+  const ps = perSec();
+  if (away > 60 && ps > 0) {
+    const gain = ps * Math.min(away, 7200) * 0.5;
+    S.money += gain; S.totalEarned += gain; S.earnedPlanet += gain;
+    document.getElementById('offlineAmount').textContent = '💰 +' + fmt(gain);
+    document.getElementById('offlineOverlay').classList.add('show');
+  }
+  if (S.clicks > 5) tutorialDone = true;
+}
+renderPanel();
+refreshHud();
+refreshCards();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
