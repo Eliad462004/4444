@@ -39,23 +39,45 @@
     display:flex; flex-direction:column;
     align-items:center; gap:4px; pointer-events:none; z-index:10;
   }
-  /* Lamar-style light pills */
-  #pills { display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; padding:0 8px; }
+  /* Lamar-style unified white HUD panel */
+  #hudPanel {
+    position:relative; pointer-events:auto;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(248,250,255,.97); border-radius:26px; padding:8px 10px;
+    width:min(520px, 96vw);
+    box-shadow:0 6px 22px rgba(0,0,0,.5);
+  }
+  .roundBtn {
+    width:54px; height:54px; border-radius:50%; flex-shrink:0; cursor:pointer;
+    border:3px solid #dfe6f2; background:#fff; font-size:24px;
+    box-shadow:0 2px 8px rgba(0,0,0,.18); transition:transform .1s;
+  }
+  .roundBtn:active { transform:scale(.92); }
+  #pillGrid { flex:1; display:grid; grid-template-columns:1.15fr 1fr; gap:6px; min-width:0; }
   .pill {
-    background:rgba(245,248,255,.94); color:#1a2440; border-radius:22px;
-    padding:6px 16px; font-weight:700; font-size:14px;
-    box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 -2px 0 rgba(0,0,0,.08);
-    white-space:nowrap;
+    display:flex; align-items:center; gap:6px; min-height:34px; min-width:0;
+    background:#e9edf5; border-radius:20px; padding:4px 12px;
+    font-weight:800; color:#1a2440; font-size:14px; white-space:nowrap;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,.09);
+    overflow:hidden;
   }
-  #money { font-size:20px; color:#7a5a00; transition:transform .1s; }
-  #money.pop { transform:scale(1.18); }
-  #income { color:#23508a; }
+  #money { font-size:19px; color:#5a4300; transition:transform .1s; }
+  #money.pop { transform:scale(1.14); }
+  #income { color:#23508a; font-size:12.5px; }
   #robotBadge { display:none; color:#5a2a8a; }
-  #energyWrap {
-    width:160px; height:10px; background:rgba(0,0,0,.55); border-radius:6px; margin-top:4px;
-    border:1px solid rgba(120,220,255,.4); overflow:hidden; display:none;
+  .barTrack {
+    flex:1; height:13px; min-width:60px; border-radius:8px; overflow:hidden;
+    background:rgba(0,0,0,.14); box-shadow:inset 0 1px 3px rgba(0,0,0,.2);
   }
-  #energyBar { height:100%; width:100%; border-radius:6px;
+  #settingsMenu {
+    position:absolute; top:62px; inset-inline-end:2px; z-index:20;
+    display:none; flex-direction:column; gap:6px;
+    background:rgba(248,250,255,.97); padding:8px; border-radius:16px;
+    box-shadow:0 8px 22px rgba(0,0,0,.45);
+  }
+  #settingsMenu.show { display:flex; }
+  #energyWrap { display:none; }
+  #energyBar { height:100%; width:100%; border-radius:8px;
     background:linear-gradient(90deg,#2de0ff,#7dffb0); transition:width .15s linear;
     box-shadow:0 0 8px rgba(125,255,176,.8); }
   /* glowing leading edge on all progress bars */
@@ -65,40 +87,52 @@
     width:7px; height:7px; border-radius:50%; transform:translateY(-50%);
     background:#fff; filter:blur(2px); opacity:.95;
   }
-  #stageWrap { margin-top:4px; text-align:center; }
-  #stageLabel { font-size:11px; color:#bcd6a8; text-shadow:0 1px 2px #000; margin-bottom:2px; }
+  #stageWrap {
+    margin-top:6px; text-align:center; pointer-events:auto;
+    background:rgba(248,250,255,.92); border-radius:16px; padding:4px 14px 7px;
+    box-shadow:0 4px 12px rgba(0,0,0,.4);
+  }
+  #stageLabel { font-size:11px; color:#23508a; font-weight:800; margin-bottom:3px; }
   #stageBarWrap {
-    width:220px; height:8px; background:rgba(0,0,0,.55); border-radius:5px;
-    border:1px solid rgba(150,220,140,.4); overflow:hidden;
+    width:200px; height:9px; background:rgba(0,0,0,.14); border-radius:6px;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.2); overflow:hidden;
   }
   #stageBar { height:100%; width:0%; border-radius:5px;
     background:linear-gradient(90deg,#8ae06a,#ffe27a); transition:width .3s;
     box-shadow:0 0 8px rgba(255,226,122,.8); }
 
-  /* ---- bottom navigation (Lamar-style) ---- */
+  /* ---- bottom navigation (Lamar-style: blue bar, chunky green 3D buttons) ---- */
   #navbar {
     position:fixed; bottom:calc(10px + env(safe-area-inset-bottom, 0px));
-    left:0; right:0; margin:0 auto; width:min(430px, 94vw); z-index:14;
-    display:flex; gap:5px; padding:6px;
-    background:rgba(240,246,255,.96); border-radius:22px;
-    box-shadow:0 6px 24px rgba(0,0,0,.5);
+    left:0; right:0; margin:0 auto; width:min(470px, 95vw); z-index:14;
+    display:flex; gap:12px; padding:11px 14px;
+    background:linear-gradient(180deg, #6ab0f0, #3f86d8);
+    border-radius:26px;
+    box-shadow:0 8px 26px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.35);
   }
   .navBtn {
-    flex:1; position:relative; border:none; cursor:pointer;
-    display:flex; flex-direction:column; align-items:center; gap:1px;
-    background:transparent; border-radius:16px; padding:6px 2px 4px;
-    color:#23335e; font-family:inherit; transition:background .15s, transform .1s;
+    flex:1; position:relative; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    height:58px; border-radius:16px; font-family:inherit;
+    background:linear-gradient(180deg, #d8f7a2, #8ed650 60%, #77c43e);
+    border:2.5px solid #55a02a; border-bottom-width:6px;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.5);
+    transition:transform .08s, filter .15s;
   }
-  .navBtn:active { transform:scale(.93); }
-  .navBtn.on { background:#cfe4ff; }
-  .nIcon { font-size:25px; line-height:1.1; }
-  .nLbl { font-size:11px; font-weight:700; }
+  .navBtn:active { transform:translateY(3px); border-bottom-width:3px; }
+  .navBtn.on {
+    filter:saturate(1.35) brightness(1.06);
+    box-shadow:inset 0 3px 9px rgba(0,0,0,.28);
+  }
+  .nIcon { font-size:31px; line-height:1; filter:drop-shadow(0 2px 2px rgba(0,0,0,.25)); }
+  .nLbl { display:none; }
   .badge {
-    position:absolute; top:-4px; inset-inline-end:10px; display:none;
-    min-width:18px; height:18px; padding:0 4px; border-radius:10px;
-    background:#ff4a4a; color:#fff; font-size:11px; font-weight:800;
-    line-height:18px; text-align:center; border:2px solid #fff;
-    box-shadow:0 2px 5px rgba(0,0,0,.4);
+    position:absolute; top:-10px; inset-inline-end:-7px; display:none; z-index:2;
+    min-width:25px; height:25px; padding:0 5px; border-radius:13px;
+    background:linear-gradient(180deg,#ff6a5a,#e02a20); color:#fff;
+    font-size:14px; font-weight:800;
+    line-height:21px; text-align:center; border:2.5px solid #fff;
+    box-shadow:0 3px 7px rgba(0,0,0,.45);
   }
 
   /* ---- bottom sheet ---- */
@@ -147,11 +181,14 @@
   .card .desc { font-size:11px; color:#b8c4f0; margin-top:1px; }
   .card .lvl  { font-size:11px; color:#ffd94a; margin-top:2px; }
   .card .cost {
-    margin-top:6px; font-size:14px; font-weight:800; color:#3a2000;
-    background:linear-gradient(180deg,#ffd23e,#ff9a1e); border-radius:8px; padding:5px;
-    box-shadow:0 2px 6px rgba(0,0,0,.4);
+    margin-top:6px; font-size:15px; font-weight:800; color:#123a00;
+    background:linear-gradient(180deg,#c2f27e,#7cce42 60%,#67bc35);
+    border:2px solid #4a9422; border-bottom-width:5px;
+    border-radius:12px; padding:6px 4px;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.5);
   }
-  .card.cant .cost { background:rgba(0,0,0,.35); color:#9a9ab0; box-shadow:none; }
+  .card:active .cost { border-bottom-width:2px; }
+  .card.cant .cost { background:rgba(0,0,0,.35); color:#9a9ab0; border-color:transparent; box-shadow:none; }
   /* upgrade categories */
   .cat-click  { border-color:rgba(255,170,90,.6); }
   .cat-click .icon  { filter:drop-shadow(0 0 10px rgba(255,170,90,.9)); }
@@ -245,12 +282,10 @@
     border-radius:18px; padding:26px 34px; color:#fff; text-align:center; }
   #resetBox .no { background:linear-gradient(145deg,#555,#333); margin-right:10px; }
 
-  /* ---- corner buttons ---- */
-  #corner { position:fixed; top:calc(10px + env(safe-area-inset-top, 0px));
-    left:calc(10px + env(safe-area-inset-left, 0px)); z-index:15; display:flex; gap:8px; }
+  /* ---- settings buttons ---- */
   .cbtn {
-    width:38px; height:38px; border-radius:10px; border:1px solid rgba(130,150,255,.35);
-    background:rgba(15,18,45,.7); color:#fff; font-size:18px; cursor:pointer;
+    width:44px; height:44px; border-radius:12px; border:1.5px solid #cfd8ea;
+    background:#e9edf5; color:#23335e; font-size:19px; cursor:pointer;
     transition:transform .08s;
   }
   .cbtn:active, #offlineBox button:active, #resetBox button:active,
@@ -337,9 +372,13 @@
     .card .icon { font-size:34px; }
     #money { font-size:17px; }
     .pill { padding:5px 12px; font-size:12px; }
-    #corner { flex-direction:column; top:calc(96px + env(safe-area-inset-top, 0px)); }
-    .cbtn { width:34px; height:34px; font-size:15px; }
-    #pills { padding:0 12px; }
+    .roundBtn { width:46px; height:46px; font-size:20px; }
+    .pill { font-size:12px; padding:3px 9px; min-height:30px; }
+    #money { font-size:16px; }
+    #income { font-size:10.5px; }
+    .navBtn { height:52px; }
+    .nIcon { font-size:27px; }
+    #navbar { gap:9px; padding:9px 11px; }
     #quest { width:140px; top:150px; right:8px; padding:8px; }
     #qText { font-size:12px; }
     #stageBarWrap { width:170px; }
@@ -359,12 +398,21 @@
 <canvas id="game"></canvas>
 
 <div id="topbar">
-  <div id="pills">
-    <div class="pill" id="money">💰 0</div>
-    <div class="pill" id="income"></div>
-    <div class="pill" id="robotBadge"></div>
+  <div id="hudPanel">
+    <button class="roundBtn" id="bankBtn" title="בורסת החלל" style="display:none">📈</button>
+    <div id="pillGrid">
+      <div class="pill" id="money">💰 0</div>
+      <div class="pill" id="robotBadge"></div>
+      <div class="pill" id="income"></div>
+      <div class="pill" id="energyWrap"><span>⚡</span><div class="barTrack"><div id="energyBar"></div></div></div>
+    </div>
+    <button class="roundBtn" id="setBtn" title="הגדרות">⚙️</button>
+    <div id="settingsMenu">
+      <button class="cbtn" id="muteBtn" title="צליל">🔊</button>
+      <button class="cbtn" id="musicBtn" title="מוזיקה">🎵</button>
+      <button class="cbtn" id="resetBtn" title="איפוס">🗑️</button>
+    </div>
   </div>
-  <div id="energyWrap"><div id="energyBar"></div></div>
   <div id="stageWrap">
     <div id="stageLabel"></div>
     <div id="stageBarWrap"><div id="stageBar"></div></div>
@@ -398,13 +446,6 @@
 </div>
 
 <div id="banner"></div>
-
-<div id="corner">
-  <button class="cbtn" id="muteBtn" title="צליל">🔊</button>
-  <button class="cbtn" id="musicBtn" title="מוזיקה">🎵</button>
-  <button class="cbtn" id="resetBtn" title="איפוס">🗑️</button>
-  <button class="cbtn" id="bankBtn" title="בורסת החלל" style="display:none">📈</button>
-</div>
 
 <div class="overlay" id="spaceOverlay">
   <h2>בחר כוכב חדש 🚀</h2>
@@ -2309,11 +2350,11 @@ function refreshHud() {
   incomeEl.textContent = inc;
   const tier = robotTier();
   if (S.robotXP > 0) {
-    badgeEl.style.display = 'block';
-    badgeEl.textContent = `🤖 רמה ${S.robotXP} · ${tier.name}`;
+    badgeEl.style.display = 'flex';
+    badgeEl.textContent = `🤖 ${S.robotXP} · ${tier.name}`;
   }
   if (S.energyShown) {
-    energyWrap.style.display = 'block';
+    energyWrap.style.display = 'flex';
     energyBar.style.width = Math.max(0, S.energy) + '%';
     energyBar.style.background = S.energy < 20
       ? 'linear-gradient(90deg,#ff7a4a,#ffb04a)'
@@ -3147,6 +3188,9 @@ function draw() {
 }
 
 // ---------- corner buttons ----------
+document.getElementById('setBtn').addEventListener('click', () => {
+  document.getElementById('settingsMenu').classList.toggle('show');
+});
 document.getElementById('muteBtn').addEventListener('click', () => {
   S.muted = !S.muted;
   document.getElementById('muteBtn').textContent = S.muted ? '🔇' : '🔊';
