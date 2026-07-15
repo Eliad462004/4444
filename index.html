@@ -39,19 +39,18 @@
     display:flex; flex-direction:column;
     align-items:center; gap:4px; pointer-events:none; z-index:10;
   }
-  #money {
-    font-size:36px; font-weight:700; color:#ffd94a; letter-spacing:.5px;
-    text-shadow:0 0 18px rgba(255,200,60,.55), 0 2px 0 rgba(0,0,0,.85),
-      2px 0 0 rgba(0,0,0,.6), -2px 0 0 rgba(0,0,0,.6), 0 -2px 0 rgba(0,0,0,.6),
-      0 3px 8px rgba(0,0,0,.9);
-    transition:transform .1s, color .5s;
+  /* Lamar-style light pills */
+  #pills { display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap; padding:0 8px; }
+  .pill {
+    background:rgba(245,248,255,.94); color:#1a2440; border-radius:22px;
+    padding:6px 16px; font-weight:700; font-size:14px;
+    box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 -2px 0 rgba(0,0,0,.08);
+    white-space:nowrap;
   }
-  #money.pop { transform:scale(1.22); }
-  #income { font-size:14px; color:#9ecbff; text-shadow:0 1px 3px #000; }
-  #robotBadge {
-    font-size:13px; color:#e8e8ff; background:rgba(20,25,60,.65); border:1px solid rgba(120,140,255,.35);
-    padding:3px 12px; border-radius:20px; margin-top:2px; display:none; text-shadow:0 1px 2px #000;
-  }
+  #money { font-size:20px; color:#7a5a00; transition:transform .1s; }
+  #money.pop { transform:scale(1.18); }
+  #income { color:#23508a; }
+  #robotBadge { display:none; color:#5a2a8a; }
   #energyWrap {
     width:160px; height:10px; background:rgba(0,0,0,.55); border-radius:6px; margin-top:4px;
     border:1px solid rgba(120,220,255,.4); overflow:hidden; display:none;
@@ -76,11 +75,54 @@
     background:linear-gradient(90deg,#8ae06a,#ffe27a); transition:width .3s;
     box-shadow:0 0 8px rgba(255,226,122,.8); }
 
-  /* ---- upgrade panel ---- */
-  #panel {
-    position:fixed; left:10px; top:90px; bottom:10px; width:214px; z-index:10;
-    display:flex; flex-direction:column; gap:8px; overflow-y:auto; padding:4px;
+  /* ---- bottom navigation (Lamar-style) ---- */
+  #navbar {
+    position:fixed; bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+    left:0; right:0; margin:0 auto; width:min(430px, 94vw); z-index:14;
+    display:flex; gap:5px; padding:6px;
+    background:rgba(240,246,255,.96); border-radius:22px;
+    box-shadow:0 6px 24px rgba(0,0,0,.5);
+  }
+  .navBtn {
+    flex:1; position:relative; border:none; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+    background:transparent; border-radius:16px; padding:6px 2px 4px;
+    color:#23335e; font-family:inherit; transition:background .15s, transform .1s;
+  }
+  .navBtn:active { transform:scale(.93); }
+  .navBtn.on { background:#cfe4ff; }
+  .nIcon { font-size:25px; line-height:1.1; }
+  .nLbl { font-size:11px; font-weight:700; }
+  .badge {
+    position:absolute; top:-4px; inset-inline-end:10px; display:none;
+    min-width:18px; height:18px; padding:0 4px; border-radius:10px;
+    background:#ff4a4a; color:#fff; font-size:11px; font-weight:800;
+    line-height:18px; text-align:center; border:2px solid #fff;
+    box-shadow:0 2px 5px rgba(0,0,0,.4);
+  }
+
+  /* ---- bottom sheet ---- */
+  #sheet {
+    position:fixed; bottom:calc(72px + env(safe-area-inset-bottom, 0px));
+    left:0; right:0; margin:0 auto; width:min(560px, 96vw); max-height:46vh;
+    overflow-y:auto; z-index:13; display:none; padding:10px;
+    background:linear-gradient(160deg, rgba(30,36,80,.6), rgba(10,12,32,.72));
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border:1.5px solid rgba(140,160,255,.4); border-radius:18px;
     scrollbar-width:thin;
+    animation:sheetUp .22s ease;
+  }
+  @keyframes sheetUp { from { opacity:0; transform:translateY(26px); } to { opacity:1; transform:none; } }
+  #sheetInner { display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:8px; }
+  .infoCard {
+    grid-column:1 / -1; background:rgba(255,255,255,.07); border:1px solid rgba(140,160,255,.3);
+    border-radius:14px; padding:12px; color:#fff; text-align:center; font-size:14px;
+  }
+  .infoCard .big { font-size:17px; font-weight:700; margin-bottom:4px; }
+  .infoCard .sub { font-size:12px; color:#aab6e8; margin-top:3px; }
+  .swatch {
+    width:46px; height:46px; border-radius:50%; margin:0 auto 4px;
+    border:2px solid rgba(255,255,255,.5); box-shadow:inset -8px -8px 14px rgba(0,0,0,.35);
   }
   .card {
     background:linear-gradient(145deg, rgba(50,60,130,.42), rgba(12,16,44,.52));
@@ -249,21 +291,67 @@
     background:linear-gradient(145deg,#3a6aff,#2340b0); color:#fff; font-size:15px; font-weight:700; cursor:pointer;
   }
 
+  /* ---- gift popup ---- */
+  #giftBox {
+    background:linear-gradient(170deg, #f6f9ff, #dfe9ff); color:#1a2440;
+    border-radius:22px; padding:26px 36px; text-align:center; max-width:320px;
+    box-shadow:0 12px 40px rgba(0,0,0,.6);
+    animation:reveal .35s ease;
+  }
+  #giftEmoji { font-size:78px; animation:giftShake 1s infinite; display:inline-block; }
+  @keyframes giftShake {
+    0%,100% { transform:rotate(0) scale(1); }
+    20% { transform:rotate(-8deg) scale(1.05); }
+    40% { transform:rotate(8deg) scale(1.05); }
+    60% { transform:rotate(-4deg); }
+  }
+  #giftTitle { font-size:22px; font-weight:800; margin-top:6px; }
+  #giftPrize { font-size:16px; font-weight:700; color:#7a5a00; margin-top:8px; }
+  #giftBtn {
+    margin-top:16px; padding:13px 44px; font-size:20px; font-weight:800;
+    border:none; border-radius:16px; cursor:pointer; color:#fff; font-family:inherit;
+    background:linear-gradient(180deg, #46d977, #23a34e);
+    box-shadow:0 5px 0 #187a38, 0 8px 18px rgba(0,0,0,.35);
+    animation:pulseGlow 1.2s infinite alternate;
+  }
+  #giftBtn:active { transform:translateY(3px); box-shadow:0 2px 0 #187a38; }
+
+  /* ---- robot speech bubble ---- */
+  #bubble {
+    position:fixed; top:calc(42% - 178px); left:calc(50% + 52px); max-width:190px;
+    z-index:9; display:none; padding:9px 13px;
+    background:#fff; color:#1a2440; border-radius:15px;
+    font-size:14px; font-weight:700; text-align:center;
+    box-shadow:0 4px 14px rgba(0,0,0,.45);
+    animation:bubblePop .25s ease;
+  }
+  @keyframes bubblePop { from { opacity:0; transform:scale(.6); } to { opacity:1; transform:scale(1); } }
+  #bubble::after {
+    content:''; position:absolute; bottom:-8px; left:22px;
+    border-width:9px 9px 0 3px; border-style:solid;
+    border-color:#fff transparent transparent transparent;
+  }
+
   @media (max-width:640px) {
-    #panel { top:auto; left:0; right:0; bottom:env(safe-area-inset-bottom, 0px); width:auto; height:162px;
-      flex-direction:row; overflow-x:auto; overflow-y:hidden; padding:8px; gap:8px; }
-    .card { width:130px; flex-shrink:0; padding:7px; }
+    .card { padding:7px; }
     .card .icon { font-size:34px; }
-    #money { font-size:28px; }
-    #income { font-size:12px; }
-    #quest { width:144px; top:auto; bottom:calc(176px + env(safe-area-inset-bottom, 0px));
-      right:8px; padding:8px; }
+    #money { font-size:17px; }
+    .pill { padding:5px 12px; font-size:12px; }
+    #corner { flex-direction:column; top:calc(96px + env(safe-area-inset-top, 0px)); }
+    .cbtn { width:34px; height:34px; font-size:15px; }
+    #pills { padding:0 12px; }
+    #quest { width:140px; top:150px; right:8px; padding:8px; }
     #qText { font-size:12px; }
     #stageBarWrap { width:170px; }
     #banner { font-size:20px; padding:0 14px; }
+    #sheet { max-height:42vh; }
+    #sheetInner { grid-template-columns:repeat(auto-fill, minmax(128px, 1fr)); }
+    #bubble { left:auto; right:8px; max-width:150px; font-size:12.5px; top:calc(42% - 165px); }
+    #bubble::after { left:auto; right:26px; }
     .planetOpt { width:104px; padding:12px 6px; }
     .planetOpt .ball { width:62px; height:62px; }
     .planetOpt .pname { font-size:13px; }
+    #challenge { top:calc(190px + env(safe-area-inset-top, 0px)); width:220px; font-size:13px; }
   }
 </style>
 </head>
@@ -271,9 +359,11 @@
 <canvas id="game"></canvas>
 
 <div id="topbar">
-  <div id="money">💰 0</div>
-  <div id="income"></div>
-  <div id="robotBadge"></div>
+  <div id="pills">
+    <div class="pill" id="money">💰 0</div>
+    <div class="pill" id="income"></div>
+    <div class="pill" id="robotBadge"></div>
+  </div>
   <div id="energyWrap"><div id="energyBar"></div></div>
   <div id="stageWrap">
     <div id="stageLabel"></div>
@@ -281,7 +371,24 @@
   </div>
 </div>
 
-<div id="panel"></div>
+<div id="sheet"><div id="sheetInner"></div></div>
+<nav id="navbar">
+  <button class="navBtn" data-tab="world"><span class="nIcon">🌍</span><span class="nLbl">כוכב</span><span class="badge" id="bdg-world"></span></button>
+  <button class="navBtn" data-tab="shop"><span class="nIcon">⛏️</span><span class="nLbl">שדרוגים</span><span class="badge" id="bdg-shop"></span></button>
+  <button class="navBtn" data-tab="skins"><span class="nIcon">🎨</span><span class="nLbl">מראה</span><span class="badge" id="bdg-skins"></span></button>
+  <button class="navBtn" data-tab="brain"><span class="nIcon">🧠</span><span class="nLbl">משימות</span><span class="badge" id="bdg-brain"></span></button>
+</nav>
+
+<div id="bubble"></div>
+
+<div class="overlay" id="giftOverlay">
+  <div id="giftBox">
+    <div id="giftEmoji">🎁</div>
+    <div id="giftTitle">מתנה מהחלל!</div>
+    <div id="giftPrize"></div>
+    <button id="giftBtn">לאסוף! 🎉</button>
+  </div>
+</div>
 
 <div id="quest">
   <div id="qTitle">🎯 משימה</div>
@@ -422,6 +529,15 @@ function eventMarketShift() {
   return shift;
 }
 
+const SKINS = [
+  { id:'def',     name:'מקורי',        cost:0,       body:null,      accent:null },
+  { id:'red',     name:'אדום לוהט',    cost:500,     body:'#e07a6a', accent:'#8a2a20' },
+  { id:'gold',    name:'זהב מלכותי',   cost:5000,    body:'#e8c860', accent:'#96701e' },
+  { id:'neon',    name:'ניאון סגול',   cost:50000,   body:'#b08aff', accent:'#5a2aaa' },
+  { id:'emerald', name:'אזמרגד',       cost:500000,  body:'#5ade8a', accent:'#1a7a4a' },
+  { id:'stealth', name:'סטלת׳ שחור',  cost:5000000, body:'#5a5a6e', accent:'#16161e' },
+];
+
 const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
 const DEST_PLANETS = [
   { name:'מאדים האדום', colors:['#5a241a','#94422a','#c9673f'], css:'radial-gradient(circle at 35% 30%, #d9825a, #7a3020 70%)', bonus:{click:2,   auto:1  }, tag:'פי 2 כוח לחיצה' },
@@ -445,7 +561,7 @@ function defaultState() {
     stage:0, unlocked:{pick:true},
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
     bankUnlocked:false, everInvested:false, fundProfitTotal:0, musicOn:true,
-    specialty:null,
+    specialty:null, skins:{def:true}, skin:'def',
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -753,7 +869,9 @@ function drawRobot(t) {
   const squash = 1 - sit*0.2 + (robot.jumpT>0 ? 0.08 : 0);
   ctx.scale(1 + sit*0.1, squash);
 
-  const body = tier.body, accent = tier.accent;
+  let body = tier.body, accent = tier.accent;
+  const skin = SKINS.find(s => s.id === S.skin);
+  if (skin && skin.body) { body = skin.body; accent = skin.accent; }
   const coreCol = robot.sitting ? '#ffb04a' : (robot.happy > 0 ? '#7dffb0' : '#5affe8');
 
   if (tier.glow) { ctx.shadowColor = body; ctx.shadowBlur = 26; }
@@ -1425,6 +1543,8 @@ function updateUnits(dt) {
 
 // ---------- random events: meteor shower, robot hacker, rush challenge ----------
 const events = { active:null, t:0, next:100 };
+let firstEventDone = false;
+let giftData = null;
 let meteorDrops = [];
 const hacker = { on:false, x:0, y:0, landY:0, taps:0, stolen:0, t:0, hitT:0 };
 const challenge = { on:false, t:0, target:0, earned:0 };
@@ -1440,6 +1560,7 @@ function startEvent(kind) {
     hacker.on = true; hacker.taps = 0; hacker.stolen = 0; hacker.t = 0; hacker.hitT = 0;
     hacker.x = sp.x; hacker.y = -50; hacker.landY = sp.y;
     banner('🦹 האקר רובוטי גונב מטבעות! לחץ עליו 3 פעמים לגרש אותו!');
+    say('מישהו גונב לנו מטבעות!! 😱', 3);
     sfx('rumble'); buzz([20, 20, 20]);
   } else if (kind === 'challenge') {
     challenge.on = true; challenge.t = 30;
@@ -1448,8 +1569,34 @@ function startEvent(kind) {
     document.getElementById('challenge').style.display = 'block';
     banner('⚡ אתגר קצב מטורף! כרה ' + fmt(challenge.target) + ' תוך 30 שניות!');
     sfx('tier'); buzz(25);
+  } else if (kind === 'gift') {
+    if (Math.random() < 0.6 || perSec() === 0) {
+      giftData = { type:'coins', amt: Math.ceil(Math.max(400 * scaleFactor(), perSec() * 120 + perClick() * 60)) };
+      document.getElementById('giftPrize').textContent = '💰 ' + fmt(giftData.amt) + ' מטבעות!';
+    } else {
+      giftData = { type:'rush' };
+      document.getElementById('giftPrize').textContent = '🔥 פי 2 הכנסות לדקה שלמה!';
+    }
+    document.getElementById('giftOverlay').classList.add('show');
+    say('מתנה!! 🎁', 3);
+    sfx('quest'); buzz(20);
   }
 }
+document.getElementById('giftBtn').addEventListener('click', () => {
+  ensureAudio();
+  if (giftData) {
+    if (giftData.type === 'coins') earn(giftData.amt);
+    else { rush.mult = 2; rush.t = 60; }
+  }
+  document.getElementById('giftOverlay').classList.remove('show');
+  events.active = null;
+  giftData = null;
+  burstConfetti(W/2, H*0.35, 45);
+  flash = 0.3;
+  sfx('quest'); buzz([20, 30, 40]);
+  say('יששש! תודה! 🎉', 3);
+  popMoney(); refreshHud(); refreshCards(); updateQuest();
+});
 
 function updateEvents(dt) {
   if (mode !== 'play') return;
@@ -1457,8 +1604,11 @@ function updateEvents(dt) {
     events.next -= dt;
     if (events.next <= 0) {
       events.next = 240 + Math.random() * 120; // every ~4-6 minutes
-      const kinds = ['meteors', 'hacker', 'challenge'];
-      startEvent(kinds[Math.floor(Math.random() * kinds.length)]);
+      const kinds = ['meteors', 'hacker', 'challenge', 'gift'];
+      // the very first event is always a gift — a warm welcome
+      const kind = firstEventDone ? kinds[Math.floor(Math.random() * kinds.length)] : 'gift';
+      firstEventDone = true;
+      startEvent(kind);
     }
   }
   // meteor shower — tappable resource meteors
@@ -1687,8 +1837,11 @@ function startTravel() {
   meteorDrops = [];
   events.active = null;
   document.getElementById('challenge').style.display = 'none';
-  document.getElementById('panel').style.display = 'none';
+  closeSheet();
+  document.getElementById('navbar').style.display = 'none';
   document.getElementById('quest').style.display = 'none';
+  bubbleEl.style.display = 'none';
+  clearTimeout(bubbleTimer);
   sfx('launch');
 }
 
@@ -1716,8 +1869,10 @@ function landOnPlanet() {
   rebuildDecors();
   rebuildUnits();
   mode = 'play';
-  document.getElementById('panel').style.display = '';
+  travelNotified = false;
+  document.getElementById('navbar').style.display = '';
   banner(`🪐 נחתת על ${p.name}! הבונוס פעיל לתמיד`);
+  say('בית חדש! בוא נבנה אותו! 🏗️', 4);
   renderPanel();
   updateQuest();
   save();
@@ -1901,9 +2056,25 @@ const energyWrap = document.getElementById('energyWrap');
 const energyBar = document.getElementById('energyBar');
 const stageLabelEl = document.getElementById('stageLabel');
 const stageBarEl = document.getElementById('stageBar');
-const panelEl = document.getElementById('panel');
+const sheetEl = document.getElementById('sheet');
+const sheetInner = document.getElementById('sheetInner');
 const bannerEl = document.getElementById('banner');
 const questEl = document.getElementById('quest');
+const bubbleEl = document.getElementById('bubble');
+
+// ---------- robot speech ----------
+let bubbleTimer = null, lastClickAt = 0, idleNext = 25;
+const IDLE_LINES = ['היי, הכוכב לא יכרה את עצמו! ⛏️', 'משעמם לי פה... בוא נלחץ! 👆', 'יש עוד המון אוצרות מתחתיי! 💎', 'אני מוכן לעבודה! 🤖'];
+const CRIT_LINES = ['בום!! 💥', 'מכה אדירה! 🔥', 'ראית את זה?! ⚡'];
+function say(text, dur) {
+  bubbleEl.textContent = text;
+  bubbleEl.style.display = 'block';
+  bubbleEl.style.animation = 'none';
+  void bubbleEl.offsetWidth;
+  bubbleEl.style.animation = '';
+  clearTimeout(bubbleTimer);
+  bubbleTimer = setTimeout(() => { bubbleEl.style.display = 'none'; }, (dur || 3.5) * 1000);
+}
 
 function fmt(n) {
   if (n < 1000) return Math.floor(n).toString();
@@ -1920,37 +2091,159 @@ function banner(msg) {
   bannerTimer = setTimeout(() => bannerEl.classList.remove('show'), 3200);
 }
 
-function renderPanel() {
-  panelEl.innerHTML = '';
-  for (const u of UPGRADES) {
-    if (!S.unlocked[u.id]) continue;
-    const el = document.createElement('div');
-    el.className = 'card cat-' + u.cat;
-    el.id = 'card-' + u.id;
-    el.innerHTML = `
-      <div class="icon">${u.icon}</div>
-      <div class="name">${u.name}</div>
-      <div class="desc">${u.desc}</div>
-      <div class="lvl">רמה ${lvl(u.id)}</div>
-      <div class="cost">💰 ${fmt(cost(u))}</div>`;
-    el.addEventListener('pointerdown', e => { e.stopPropagation(); buy(u); });
-    panelEl.appendChild(el);
+// ---------- bottom navigation & sheet ----------
+let curTab = null;
+let travelNotified = false;
+
+function closeSheet() {
+  curTab = null;
+  sheetEl.style.display = 'none';
+  document.querySelectorAll('.navBtn').forEach(b => b.classList.remove('on'));
+}
+document.querySelectorAll('.navBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    ensureAudio();
+    const tab = btn.dataset.tab;
+    if (curTab === tab) { closeSheet(); return; }
+    curTab = tab;
+    document.querySelectorAll('.navBtn').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    sheetEl.style.display = 'block';
+    renderSheet();
+    buzz(8);
+  });
+});
+
+function renderSheet() {
+  if (!curTab) return;
+  let html = '';
+  if (curTab === 'shop') {
+    for (const u of UPGRADES) {
+      if (!S.unlocked[u.id]) continue;
+      html += `
+        <div class="card cat-${u.cat}" id="card-${u.id}" data-u="${u.id}">
+          <div class="icon">${u.icon}</div>
+          <div class="name">${u.name}</div>
+          <div class="desc">${u.desc}</div>
+          <div class="lvl">רמה ${lvl(u.id)}</div>
+          <div class="cost">💰 ${fmt(cost(u))}</div>
+        </div>`;
+    }
+  } else if (curTab === 'world') {
+    html += `
+      <div class="infoCard">
+        <div class="big">🪐 ${S.planetName}</div>
+        <div>העידן הנוכחי: ${STAGES[S.stage].name}</div>
+        <div class="sub">כוכבים שנכבשו: ${S.visits + 1} · 💎 קריסטל: ${S.cracked ? 'פעיל — הכנסות כפולות!' : 'טרם נחשף'}</div>
+      </div>`;
+    if (S.bankUnlocked) {
+      html += `
+        <div class="card" id="bankOpen">
+          <div class="icon">📈</div>
+          <div class="name">בורסת החלל</div>
+          <div class="desc">השקעות וריבית דריבית</div>
+        </div>`;
+    }
+    if (S.earnedPlanet >= travelAt()) {
+      html += `
+        <div class="card" id="travelBtn" style="display:block">
+          <div class="icon">🚀</div>
+          <div class="name">מסע לכוכב חדש</div>
+          <div class="desc">השדרוגים מתאפסים, אבל תקבל בונוס הכנסה קבוע לתמיד!</div>
+          <div class="cost">המריאו! ✨</div>
+        </div>`;
+    } else {
+      html += `
+        <div class="infoCard">
+          <div>🚀 המסע לכוכב הבא ייפתח אחרי ${fmt(travelAt())} מטבעות</div>
+          <div class="sub">נכרו עד כה: ${fmt(S.earnedPlanet)}</div>
+        </div>`;
+    }
+  } else if (curTab === 'skins') {
+    for (const sk of SKINS) {
+      const owned = !!S.skins[sk.id];
+      const worn = S.skin === sk.id;
+      const b = sk.body || TIERS[0].body, a = sk.accent || TIERS[0].accent;
+      html += `
+        <div class="card skinCard" data-skin="${sk.id}">
+          <div class="swatch" style="background:radial-gradient(circle at 35% 30%, ${b}, ${a})"></div>
+          <div class="name">${sk.name}</div>
+          <div class="cost">${worn ? '✔ בשימוש' : owned ? 'לחץ ללבוש' : '💰 ' + fmt(sk.cost)}</div>
+        </div>`;
+    }
+  } else if (curTab === 'brain') {
+    const done = Object.keys(S.qDone).length;
+    html += `
+      <div class="infoCard">
+        <div class="big">🎯 משימות</div>
+        <div>הושלמו ${done} מתוך ${QUESTS.length}</div>
+        <div class="sub">המשימה הפעילה מוצגת בפינה למעלה — לחץ עליה לאיסוף הפרס</div>
+      </div>
+      <div class="infoCard">
+        <div class="big">🔬 מסלול טכנולוגי</div>
+        <div>${S.specialty === 'click' ? '⛏️ טכנולוגיית כרייה (+50% ללחיצה)' : S.specialty === 'auto' ? '🤖 טכנולוגיית אוטומציה (+50% אוטומטי)' : 'ייפתח ברמת רובוט 20'}</div>
+      </div>
+      <div class="infoCard">
+        <div class="big">📊 סטטיסטיקות</div>
+        <div>👆 לחיצות: ${fmt(S.clicks)} · 🦾 רמת רובוט: ${S.robotXP}</div>
+        <div class="sub">💰 סה"כ נכרה: ${fmt(S.totalEarned)} · 🎉 אבני דרך: ${S.milestoneIdx}</div>
+      </div>`;
   }
-  // travel button
-  if (S.earnedPlanet >= travelAt()) {
-    const el = document.createElement('div');
-    el.className = 'card';
-    el.id = 'travelBtn';
-    el.style.display = 'block';
-    el.innerHTML = `
-      <div class="icon">🚀</div>
-      <div class="name">מסע לכוכב חדש</div>
-      <div class="desc">השדרוגים מתאפסים, אבל תקבל בונוס הכנסה קבוע לתמיד!</div>
-      <div class="cost">המריאו! ✨</div>`;
-    el.addEventListener('pointerdown', e => { e.stopPropagation(); ensureAudio(); startTravel(); });
-    panelEl.appendChild(el);
-  }
+  sheetInner.innerHTML = html;
   refreshCards();
+}
+
+sheetInner.addEventListener('pointerdown', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  e.stopPropagation();
+  if (card.dataset.u) {
+    buy(UPGRADES.find(u => u.id === card.dataset.u));
+  } else if (card.id === 'travelBtn') {
+    ensureAudio(); startTravel();
+  } else if (card.id === 'bankOpen') {
+    ensureAudio(); renderBank();
+    document.getElementById('bankOverlay').classList.add('show');
+  } else if (card.dataset.skin) {
+    skinTap(card.dataset.skin);
+  }
+});
+
+function skinTap(id) {
+  ensureAudio();
+  const sk = SKINS.find(s => s.id === id);
+  if (S.skins[id]) {
+    if (S.skin !== id) { S.skin = id; say('איזה סטייל! 😎', 3); sfx('buy'); buzz(12); }
+  } else if (S.money >= sk.cost) {
+    S.money -= sk.cost;
+    S.skins[id] = true; S.skin = id;
+    banner('🎨 סקין חדש: ' + sk.name + '!');
+    burstConfetti(W/2, H*0.35, 30);
+    robot.jumpT = 1; robot.happy = 2;
+    sfx('tier'); buzz(20);
+  } else { sfx('hit'); return; }
+  refreshHud(); renderSheet(); save();
+}
+
+function setBadge(id, n) {
+  const el = document.getElementById(id);
+  if (n > 0) { el.style.display = 'block'; el.textContent = n > 9 ? '9+' : n; }
+  else el.style.display = 'none';
+}
+function updateBadges() {
+  let shop = 0;
+  for (const u of UPGRADES) if (S.unlocked[u.id] && S.money >= cost(u)) shop++;
+  setBadge('bdg-shop', shop);
+  setBadge('bdg-world', S.earnedPlanet >= travelAt() ? 1 : 0);
+  let skins = 0;
+  for (const sk of SKINS) if (!S.skins[sk.id] && S.money >= sk.cost) skins++;
+  setBadge('bdg-skins', skins);
+  const q = (S.curQuest >= 0 && !S.qDone[S.curQuest]) ? QUESTS[S.curQuest] : null;
+  setBadge('bdg-brain', q && q.p() >= q.g ? 1 : 0);
+}
+
+function renderPanel() {
+  updateBadges();
+  if (curTab) renderSheet();
 }
 
 function refreshCards() {
@@ -1963,6 +2256,12 @@ function refreshCards() {
     el.querySelector('.lvl').textContent = 'רמה ' + lvl(u.id);
     el.querySelector('.cost').textContent = '💰 ' + fmt(c);
   }
+  document.querySelectorAll('.skinCard').forEach(el => {
+    const sk = SKINS.find(s => s.id === el.dataset.skin);
+    if (!sk || S.skins[sk.id]) return;
+    el.classList.toggle('cant', S.money < sk.cost);
+    el.classList.toggle('ready', S.money >= sk.cost);
+  });
 }
 
 function buy(u) {
@@ -1988,6 +2287,7 @@ function buy(u) {
   addFloat(p.x, p.y - 90, u.icon + ' ' + u.name + '!', '#a0c8ff', 16);
   if (newTier !== prevTier) {
     banner(`🤖 הרובוט התפתח: ${newTier.name}!`);
+    say('וואו! אני מרגיש משודרג! 💪', 3.5);
     sfx('tier');
     flash = 0.5;
     burstSparks(p.x, p.y - 50, 30, '#ffe27a');
@@ -1999,19 +2299,8 @@ function buy(u) {
   updateQuest();
 }
 
-function moneyColors() {
-  const n = S.money;
-  if (n >= 1e12) return ['#8ad0ff', 'rgba(120,190,255,.6)'];
-  if (n >= 1e9)  return ['#7dffd0', 'rgba(90,255,200,.55)'];
-  if (n >= 1e6)  return ['#ffb04a', 'rgba(255,150,60,.6)'];
-  return ['#ffd94a', 'rgba(255,200,60,.55)'];
-}
-
 function refreshHud() {
   moneyEl.textContent = '💰 ' + fmt(S.money);
-  const [mc, ms] = moneyColors();
-  moneyEl.style.color = mc;
-  moneyEl.style.textShadow = `0 0 18px ${ms}, 0 2px 0 rgba(0,0,0,.85), 2px 0 0 rgba(0,0,0,.6), -2px 0 0 rgba(0,0,0,.6), 0 -2px 0 rgba(0,0,0,.6), 0 3px 8px rgba(0,0,0,.9)`;
   const ps = perSec();
   let inc = ps > 0
     ? `⚡ ${fmt(ps)} לשנייה · 👆 ${fmt(perClick())} ללחיצה`
@@ -2031,6 +2320,7 @@ function refreshHud() {
       : 'linear-gradient(90deg,#2de0ff,#7dffb0)';
   }
   refreshStageBar();
+  updateBadges();
 }
 
 function refreshStageBar() {
@@ -2221,7 +2511,7 @@ function checkStage() {
     S.stage++;
     changed = true;
     addFeatures(S.stage);
-    if (STAGES[S.stage].msg) { banner(STAGES[S.stage].msg); flash = 0.35; sfx('tier'); }
+    if (STAGES[S.stage].msg) { banner(STAGES[S.stage].msg); say('תראה את הכוכב שלנו! 😍', 3.5); flash = 0.35; sfx('tier'); }
     if (S.stage >= 5) S.everLiving = true;
   }
   if (changed) rebuildUnits();
@@ -2245,7 +2535,12 @@ function earn(amount) {
     sfx('tier');
   }
   if (!S.cracked && !crackAnim.active && S.earnedPlanet >= crackAt()) triggerCrack();
-  if (S.earnedPlanet >= travelAt() && !document.getElementById('travelBtn')) renderPanel();
+  if (S.earnedPlanet >= travelAt() && !travelNotified) {
+    travelNotified = true;
+    banner('🚀 המסע לכוכב הבא נפתח! בדוק בלשונית "כוכב"');
+    say('אפשר לטוס לכוכב חדש! 🚀', 4);
+    renderPanel();
+  }
 }
 
 function hitEffects(gain, big, fx, fy, crit) {
@@ -2265,6 +2560,7 @@ function hitEffects(gain, big, fx, fy, crit) {
     flash = Math.max(flash, 0.3);
     addRing(ip.x, ip.y);
     addFloat(flx, fly - 10, '⚡ +' + fmt(gain), '#fff59a', 32, -3.4);
+    if (Math.random() < 0.25) say(CRIT_LINES[Math.floor(Math.random() * CRIT_LINES.length)], 2);
     sfx('crit'); buzz([12, 15, 28]);
   } else {
     addFloat(flx, fly, '+' + fmt(gain),
@@ -2285,6 +2581,7 @@ function hitEffects(gain, big, fx, fy, crit) {
 function doClick(cx_, cy_) {
   if (mode !== 'play') return;
   ensureAudio();
+  lastClickAt = now;
 
   // golden comet catch (generous tap radius for kids)
   if (comet && cx_ !== undefined && Math.hypot(cx_ - comet.x, cy_ - comet.y) < 52) {
@@ -2527,6 +2824,12 @@ function update(dt) {
 
   // random events
   updateEvents(dt);
+
+  // bored robot calls the player back
+  if (mode === 'play' && tutorialDone && now - lastClickAt > 45 && now > idleNext) {
+    say(IDLE_LINES[Math.floor(Math.random() * IDLE_LINES.length)], 4);
+    idleNext = now + 75;
+  }
 
   // star parallax drift — three depth layers at different speeds
   if (mode === 'play' || mode === 'crack') {
