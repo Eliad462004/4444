@@ -28,7 +28,7 @@
     text-shadow:0 0 18px rgba(255,200,60,.55), 0 2px 4px rgba(0,0,0,.8);
     transition:transform .1s, color .5s;
   }
-  #money.pop { transform:scale(1.18); }
+  #money.pop { transform:scale(1.22); }
   #income { font-size:14px; color:#9ecbff; text-shadow:0 1px 3px #000; }
   #robotBadge {
     font-size:13px; color:#e8e8ff; background:rgba(20,25,60,.65); border:1px solid rgba(120,140,255,.35);
@@ -75,9 +75,11 @@
   .card .desc { font-size:11px; color:#b8c4f0; margin-top:1px; }
   .card .lvl  { font-size:11px; color:#ffd94a; margin-top:2px; }
   .card .cost {
-    margin-top:6px; font-size:14px; font-weight:700; color:#ffd94a;
-    background:rgba(0,0,0,.35); border-radius:8px; padding:4px;
+    margin-top:6px; font-size:14px; font-weight:800; color:#3a2000;
+    background:linear-gradient(180deg,#ffd23e,#ff9a1e); border-radius:8px; padding:5px;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
   }
+  .card.cant .cost { background:rgba(0,0,0,.35); color:#9a9ab0; box-shadow:none; }
   /* upgrade categories */
   .cat-click  { border-color:rgba(255,170,90,.6); }
   .cat-click .icon  { filter:drop-shadow(0 0 10px rgba(255,170,90,.9)); }
@@ -106,6 +108,14 @@
     border:1px solid rgba(255,200,90,.3); }
   #qBar { height:100%; width:0%; background:linear-gradient(90deg,#ffd94a,#ff9a4a); transition:width .3s; }
   #qReward { font-size:12px; color:#ffe9a0; margin-top:6px; }
+  #qChoose { display:flex; gap:6px; margin-top:8px; }
+  .qOpt {
+    flex:1; background:linear-gradient(160deg,#4a5ab8,#28306a); border:1.5px solid #ffd94a;
+    border-radius:10px; padding:7px 4px; font-size:11.5px; cursor:pointer; color:#fff;
+    transition:transform .1s;
+  }
+  .qOpt:active { transform:scale(.93); }
+  .qOpt .qi { font-size:24px; line-height:1.2; }
 
   /* ---- banner ---- */
   #banner {
@@ -296,7 +306,7 @@ function defaultState() {
     visits:0, planetColors:HOME_PLANET.colors, planetName:HOME_PLANET.name,
     cracked:false, crystalMult:1,
     stage:0, unlocked:{pick:true},
-    questIdx:0, everCracked:false, everLiving:false,
+    qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
     muted:false, lastSeen:Date.now(),
   };
 }
@@ -494,13 +504,77 @@ function addBolt(x1, y1, x2, y2) {
 function addRing(x, y) {
   rings.push({ x, y, r:8, life:1 });
 }
+const CONFETTI_COLORS = ['#ff5a5a','#ffd94a','#7dffb0','#5ad8ff','#b08aff','#ff9a4a'];
+function burstConfetti(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random()*Math.PI*2, sp = 2+Math.random()*5;
+    particles.push({ type:'confetti', x, y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp - 3,
+      g:0.12, life:1, decay:0.008+Math.random()*0.008, size:3+Math.random()*4,
+      rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.4,
+      col:CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)] });
+  }
+}
 function addImpact(x, y, big) {
   impacts.push({ x, y, r: big ? 42 : 26, life:1 });
 }
 
 // ---------- robot ----------
-const robot = { hitT:0, jumpT:0, blink:0, happy:0, sitting:false };
+const robot = { hitT:0, jumpT:0, blink:0, happy:0, sitting:false, spinT:0 };
 const work = { t:0, boost:0 };
+let robotClickStreak = 0, lastRobotClick = 0, lastSpin = -99;
+
+// ---------- golden comet (tap it for a bonus!) ----------
+let comet = null;
+function updateComet(dt) {
+  if (!comet) {
+    if (mode === 'play' && Math.random() < dt * 0.015) {
+      comet = { x:-60, y:H*(0.08+Math.random()*0.2), vx:2.1, vy:0.5, t:0 };
+    }
+    return;
+  }
+  comet.t += dt;
+  comet.x += comet.vx; comet.y += comet.vy;
+  if (comet.x > W + 70) comet = null;
+}
+function drawComet(t) {
+  if (!comet) return;
+  const pulse = 1 + Math.sin(t*6) * 0.15;
+  ctx.save();
+  // golden tail
+  const tg = ctx.createLinearGradient(comet.x, comet.y, comet.x - 90, comet.y - 20);
+  tg.addColorStop(0, 'rgba(255,214,80,0.8)');
+  tg.addColorStop(1, 'rgba(255,214,80,0)');
+  ctx.strokeStyle = tg; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(comet.x, comet.y); ctx.lineTo(comet.x - 90, comet.y - 20); ctx.stroke();
+  // star
+  ctx.translate(comet.x, comet.y);
+  ctx.rotate(t * 1.5);
+  ctx.scale(pulse, pulse);
+  ctx.fillStyle = '#ffd94a';
+  ctx.shadowColor = '#ffd94a'; ctx.shadowBlur = 22;
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a1 = i * Math.PI * 2 / 5 - Math.PI/2;
+    const a2 = a1 + Math.PI / 5;
+    ctx.lineTo(Math.cos(a1)*16, Math.sin(a1)*16);
+    ctx.lineTo(Math.cos(a2)*7, Math.sin(a2)*7);
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff3c0';
+  ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function collectComet() {
+  const bonus = perClick() * 25 + perSec() * 10;
+  earn(bonus);
+  banner('⭐ תפסת כוכב זהב! +' + fmt(bonus) + ' 💰');
+  burstConfetti(comet.x, comet.y, 32);
+  burstCoins(comet.x, comet.y, 8);
+  sfx('quest'); buzz([20, 30, 40]);
+  flash = 0.25;
+  comet = null;
+  popMoney(); refreshHud(); refreshCards(); updateQuest();
+}
 
 function impactPoint() {
   const p = surfacePoint(0);
@@ -520,6 +594,7 @@ function drawRobot(t) {
   ctx.save();
   ctx.translate(p.x, p.y - jump);
   ctx.scale(sc, sc);
+  if (robot.spinT > 0) ctx.rotate((1 - robot.spinT) * Math.PI * 2); // easter-egg cartwheel
   if (hit > 0) ctx.rotate(hit * 0.12);
   const sit = robot.sitting ? 1 : 0;
   const squash = 1 - sit*0.22 + (robot.jumpT>0 ? 0.08 : 0);
@@ -621,6 +696,21 @@ function drawRobot(t) {
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     ctx.font = '14px Arial';
     ctx.fillText('💤', 20, hy - 30 + Math.sin(t*2)*3);
+  }
+  // sweat drop when tired
+  if (!robot.sitting && S.energy < 30) {
+    ctx.shadowBlur = 0;
+    ctx.font = '12px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('💧', -22, hy - 16 + (Math.sin(t*6)+1)*3);
+  }
+  // excitement sparkles when working fast
+  if (work.boost > 1.5 && !robot.sitting) {
+    ctx.shadowBlur = 0;
+    ctx.font = '11px Arial'; ctx.textAlign = 'center';
+    for (let i = 0; i < 3; i++) {
+      const ang = t*3 + i*2.1;
+      ctx.fillText('✨', Math.cos(ang)*36, hy - 8 + Math.sin(ang)*22);
+    }
   }
   ctx.restore();
 
@@ -1174,7 +1264,14 @@ function tone(freq, dur, type, vol, slide) {
 }
 function sfx(name) {
   switch (name) {
-    case 'hit':   tone(150 + Math.random()*60, 0.07, 'square', 0.05, -80); break;
+    case 'hit': {
+      // deeper, heavier clang as the robot evolves
+      const ti = TIERS.indexOf(robotTier());
+      const base = 150 - ti * 14;
+      tone(base + Math.random()*50, 0.07, 'square', 0.05, -80);
+      if (ti >= 2) tone(base * 0.45, 0.14, 'triangle', 0.07, -25);
+      break;
+    }
     case 'coin':  tone(900, 0.06, 'sine', 0.05); setTimeout(() => tone(1350, 0.09, 'sine', 0.05), 50); break;
     case 'buy':   [440, 550, 660].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'triangle', 0.07), i*70)); break;
     case 'tier':  [330, 440, 550, 880].forEach((f, i) => setTimeout(() => tone(f, 0.14, 'triangle', 0.08), i*90)); break;
@@ -1338,38 +1435,80 @@ function popMoney() {
   setTimeout(() => moneyEl.classList.remove('pop'), 110);
 }
 
-// ---------- quests ----------
-function currentQuest() {
-  return S.questIdx < QUESTS.length ? QUESTS[S.questIdx] : null;
+// ---------- quests (the player chooses the next mission) ----------
+function questAvailable() {
+  const out = [];
+  for (let i = 0; i < QUESTS.length; i++) if (!S.qDone[i]) out.push(i);
+  return out;
 }
 function updateQuest() {
-  const q = currentQuest();
-  if (!q) { questEl.style.display = 'none'; return; }
   if (mode !== 'play' && mode !== 'crack') return;
+  const avail = questAvailable();
+  if (!avail.length) { questEl.style.display = 'none'; return; }
   questEl.style.display = 'block';
+  if (S.curQuest < 0 || S.qDone[S.curQuest]) {
+    if (avail.length === 1) {
+      S.curQuest = avail[0];
+    } else {
+      const [a, b] = avail;
+      questEl.classList.remove('ready');
+      questEl.innerHTML = `
+        <div id="qTitle">🎯 בחר את המשימה הבאה</div>
+        <div id="qChoose">
+          <div class="qOpt" data-q="${a}"><div class="qi">${QUESTS[a].icon}</div>${QUESTS[a].text}</div>
+          <div class="qOpt" data-q="${b}"><div class="qi">${QUESTS[b].icon}</div>${QUESTS[b].text}</div>
+        </div>`;
+      return;
+    }
+  }
+  const q = QUESTS[S.curQuest];
   const prog = Math.min(q.p(), q.g);
   const done = prog >= q.g;
-  document.getElementById('qText').textContent = q.icon + ' ' + q.text;
-  document.getElementById('qBar').style.width = (prog / q.g * 100) + '%';
-  document.getElementById('qReward').textContent = done
-    ? '🎁 לחץ לאיסוף: ' + fmt(q.r) + ' 💰'
-    : `${fmt(prog)} / ${fmt(q.g)} · פרס: ${fmt(q.r)} 💰`;
+  questEl.innerHTML = `
+    <div id="qTitle">🎯 משימה</div>
+    <div id="qText">${q.icon} ${q.text}</div>
+    <div id="qBarWrap"><div id="qBar" style="width:${prog / q.g * 100}%"></div></div>
+    <div id="qReward">${done
+      ? '🎁 לחץ לאיסוף: ' + fmt(q.r) + ' 💰'
+      : fmt(prog) + ' / ' + fmt(q.g) + ' · פרס: ' + fmt(q.r) + ' 💰'}</div>`;
   questEl.classList.toggle('ready', done);
 }
-questEl.addEventListener('pointerdown', () => {
-  const q = currentQuest();
-  if (!q || q.p() < q.g) return;
+questEl.addEventListener('pointerdown', e => {
+  const opt = e.target.closest('.qOpt');
+  if (opt) {
+    ensureAudio();
+    S.curQuest = parseInt(opt.dataset.q, 10);
+    sfx('buy'); buzz(15);
+    updateQuest();
+    save();
+    return;
+  }
+  if (S.curQuest < 0 || S.qDone[S.curQuest]) return;
+  const q = QUESTS[S.curQuest];
+  if (q.p() < q.g) return;
   ensureAudio();
   S.money += q.r;
-  S.questIdx++;
+  S.qDone[S.curQuest] = true;
+  S.curQuest = -1;
   sfx('quest');
   buzz(30);
   banner('🎯 משימה הושלמה! +' + fmt(q.r) + ' 💰');
   popMoney();
   flash = 0.3;
+  burstConfetti(W/2, H*0.3, 36);
   refreshHud(); refreshCards(); updateQuest();
   save();
 });
+
+// ---------- money milestones ----------
+function milestoneAt(i) { return 1000 * Math.pow(10, i); }
+function celebrateMilestone(v) {
+  banner('🎉 חצית ' + fmt(v) + ' מטבעות! כל הכבוד!');
+  flash = 0.4;
+  sfx('quest'); buzz(25);
+  const r = moneyEl.getBoundingClientRect();
+  burstConfetti(r.left + r.width/2, r.top + r.height + 10, 44);
+}
 
 // ---------- game logic ----------
 function checkUnlocks() {
@@ -1404,6 +1543,10 @@ function earn(amount) {
   S.earnedPlanet += amount;
   checkUnlocks();
   checkStage();
+  while (S.milestoneIdx < 12 && S.totalEarned >= milestoneAt(S.milestoneIdx)) {
+    S.milestoneIdx++;
+    celebrateMilestone(milestoneAt(S.milestoneIdx - 1));
+  }
   if (!S.cracked && !crackAnim.active && S.earnedPlanet >= crackAt()) triggerCrack();
   if (S.earnedPlanet >= travelAt() && !document.getElementById('travelBtn')) renderPanel();
 }
@@ -1423,12 +1566,42 @@ function hitEffects(gain, big) {
   const tool = robotTier().tool;
   if (tool === 'drill' && big) addBolt(ip.x, ip.y, ip.x + (Math.random()-0.5)*60, ip.y - 30 - Math.random()*40);
   if (tool === 'laser') addBolt(ip.x, ip.y, ip.x + (Math.random()-0.5)*80, ip.y - 40 - Math.random()*50);
+  // floating light motes drifting up from the impact
+  for (let i = 0; i < (big ? 4 : 1); i++) {
+    particles.push({ type:'glow', x:ip.x + (Math.random()-0.5)*22, y:ip.y - 4,
+      vx:(Math.random()-0.5)*0.8, vy:-(0.6 + Math.random()*0.9),
+      g:-0.005, life:1, decay:0.015, size:2 + Math.random()*2.5, col:'#ffe9a0' });
+  }
 }
 
-function doClick() {
+function doClick(cx_, cy_) {
   if (mode !== 'play') return;
   ensureAudio();
+
+  // golden comet catch (generous tap radius for kids)
+  if (comet && cx_ !== undefined && Math.hypot(cx_ - comet.x, cy_ - comet.y) < 52) {
+    collectComet();
+    return;
+  }
+
   S.clicks++;
+
+  // easter egg: 10 rapid taps on the robot itself → cartwheel!
+  if (cx_ !== undefined) {
+    const p0 = surfacePoint(0), rs = robotScale();
+    if (Math.hypot(cx_ - p0.x, cy_ - (p0.y - 45*rs)) < 75*rs) {
+      const nowMs = performance.now();
+      robotClickStreak = (nowMs - lastRobotClick < 900) ? robotClickStreak + 1 : 1;
+      lastRobotClick = nowMs;
+      if (robotClickStreak >= 10 && robot.spinT <= 0 && now - lastSpin > 8) {
+        robotClickStreak = 0; lastSpin = now;
+        robot.spinT = 1; robot.happy = 3;
+        banner('🤸 הרובוט עושה סלטה! איזה כיף!');
+        burstConfetti(p0.x, p0.y - 70, 40);
+        sfx('tier'); buzz([15, 20, 35]);
+      }
+    }
+  }
 
   // energy
   let mult = 1;
@@ -1486,7 +1659,7 @@ function doAutoWork() {
   updateQuest();
 }
 
-cv.addEventListener('pointerdown', () => doClick());
+cv.addEventListener('pointerdown', e => doClick(e.clientX, e.clientY));
 cv.addEventListener('contextmenu', e => e.preventDefault());
 
 // haptic feedback on mobile
@@ -1505,6 +1678,17 @@ function load() {
     if (!raw) return false;
     const d = JSON.parse(raw);
     S = Object.assign(defaultState(), d);
+    // migrate old saves: linear questIdx → chooseable quests
+    if (typeof d.questIdx === 'number' && d.qDone === undefined) {
+      S.qDone = {};
+      for (let i = 0; i < d.questIdx && i < QUESTS.length; i++) S.qDone[i] = true;
+      S.curQuest = d.questIdx < QUESTS.length ? d.questIdx : -1;
+    }
+    // don't re-celebrate milestones already passed
+    if (d.milestoneIdx === undefined) {
+      S.milestoneIdx = 0;
+      while (S.milestoneIdx < 12 && S.totalEarned >= milestoneAt(S.milestoneIdx)) S.milestoneIdx++;
+    }
     return true;
   } catch(e) { return false; }
 }
@@ -1554,13 +1738,15 @@ function update(dt) {
   // robot anim timers
   if (robot.hitT > 0) robot.hitT = Math.max(0, robot.hitT - dt * 6);
   if (robot.jumpT > 0) robot.jumpT = Math.max(0, robot.jumpT - dt * 2.4);
+  if (robot.spinT > 0) robot.spinT = Math.max(0, robot.spinT - dt * 1.1);
   if (robot.happy > 0) robot.happy -= dt;
   robot.blink -= dt;
   if (robot.blink < -3 && Math.random() < 0.02) robot.blink = 0.15;
 
-  // background actors
-  if (Math.random() < dt * 0.3) spawnMeteor();
-  if (Math.random() < dt * 0.05) spawnShootingStar();
+  // background actors (kept sparse — the robot is the center of focus)
+  if (Math.random() < dt * 0.15) spawnMeteor();
+  if (Math.random() < dt * 0.03) spawnShootingStar();
+  updateComet(dt);
   const shipCap = 2 + Math.min(lvl('fleet'), 4);
   if (ships.length < shipCap && Math.random() < dt * (0.06 + 0.05 * Math.min(lvl('fleet'), 5))) {
     spawnShip(lvl('fleet') > 0 && Math.random() < 0.5);
@@ -1744,6 +1930,9 @@ function draw() {
     ctx.restore();
   }
 
+  // golden bonus comet
+  drawComet(now);
+
   // scene per mode
   if (mode === 'play' || mode === 'crack') {
     drawPlanet(now, 1);
@@ -1810,6 +1999,19 @@ function draw() {
       ctx.fillStyle = p.col;
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
       ctx.globalAlpha = 1;
+    } else if (p.type === 'confetti') {
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.col;
+      ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.66);
+      ctx.restore();
+    } else if (p.type === 'glow') {
+      ctx.globalAlpha = Math.max(0, p.life) * 0.9;
+      ctx.fillStyle = p.col;
+      ctx.shadowColor = p.col; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.globalAlpha = 1;
     } else if (p.type === 'coin') {
       ctx.save();
       ctx.translate(p.x, p.y);
