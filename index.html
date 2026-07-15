@@ -278,6 +278,7 @@
 
 <div id="corner">
   <button class="cbtn" id="muteBtn" title="צליל">🔊</button>
+  <button class="cbtn" id="musicBtn" title="מוזיקה">🎵</button>
   <button class="cbtn" id="resetBtn" title="איפוס">🗑️</button>
   <button class="cbtn" id="bankBtn" title="בורסת החלל" style="display:none">📈</button>
 </div>
@@ -401,7 +402,7 @@ function defaultState() {
     cracked:false, crystalMult:1,
     stage:0, unlocked:{pick:true},
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
-    bankUnlocked:false, everInvested:false, fundProfitTotal:0,
+    bankUnlocked:false, everInvested:false, fundProfitTotal:0, musicOn:true,
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -1517,6 +1518,135 @@ function ensureAudio() {
     try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
   }
   if (AC && AC.state === 'suspended') AC.resume();
+  startMusic();
+}
+
+/* ---------- generative music engine ----------
+   Dynamic Evolution: the score grows a new layer with every planet stage.
+   Stage 0: soft zen pads · 1: bass pulse · 2: pentatonic arpeggio ·
+   3: lo-fi heartbeat drums · 4: rich pad + snare · 5: brighter melody ·
+   6: high shimmer */
+const MUSIC_TEMPO = 76;
+const CHORDS = [[57,60,64],[53,57,60],[48,52,55],[55,59,62]]; // Am F C G
+const PENTA = [57,60,62,64,67,69,72,74,76,79];
+const music = { nextNoteTime:0, bar:0, beat:0, timer:null };
+let musicGain = null, musicLP = null, noiseBuf = null;
+function midiHz(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+function initMusic() {
+  if (!AC || musicGain) return;
+  musicLP = AC.createBiquadFilter();
+  musicLP.type = 'lowpass'; musicLP.frequency.value = 2400;
+  musicGain = AC.createGain();
+  musicGain.gain.value = musicVol();
+  musicLP.connect(musicGain);
+  musicGain.connect(AC.destination);
+}
+function musicVol() { return (S.musicOn && !S.muted) ? 0.14 : 0; }
+function applyMusicVol() { if (musicGain) musicGain.gain.setTargetAtTime(musicVol(), AC.currentTime, 0.2); }
+function getNoise() {
+  if (!noiseBuf) {
+    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuf;
+}
+function mtone(freq, t, dur, type, vol) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + Math.min(0.05, dur * 0.2));
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(musicLP);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function mpad(freq, t, dur, vol) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'triangle'; o.frequency.value = freq;
+  o.detune.value = (Math.random() - 0.5) * 9;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + dur * 0.35);
+  g.gain.linearRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(musicLP);
+  o.start(t); o.stop(t + dur + 0.1);
+}
+function mkick(t, vol) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(140, t);
+  o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.26);
+  o.connect(g); g.connect(musicGain);
+  o.start(t); o.stop(t + 0.3);
+}
+function mnoise(t, dur, vol, freq, type) {
+  const src = AC.createBufferSource(); src.buffer = getNoise();
+  const f = AC.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  src.connect(f); f.connect(g); g.connect(musicGain);
+  src.start(t); src.stop(t + dur + 0.02);
+}
+function scheduleBeat(t, bar, beat) {
+  const stage = S.stage;
+  const spb = 60 / MUSIC_TEMPO;
+  const chord = CHORDS[Math.floor(bar / 2) % 4];
+  // layer 0 — zen pads (always)
+  if (beat === 0 && bar % 2 === 0) {
+    const dur = spb * 8;
+    for (const m of chord) mpad(midiHz(m), t, dur, 0.045);
+    if (stage >= 4) mpad(midiHz(chord[0] + 12), t, dur, 0.028); // richer voicing
+  }
+  // sparse music-box melody, wider range as the planet grows
+  if (beat % 2 === 0 && Math.random() < (stage >= 5 ? 0.45 : 0.28)) {
+    const m = PENTA[Math.floor(Math.random() * Math.min(4 + stage * 1.5, PENTA.length))] + 12;
+    mtone(midiHz(m), t + (Math.random() < 0.3 ? spb / 2 : 0), 1.6, 'sine', 0.032);
+  }
+  // layer 1 — bass pulse
+  if (stage >= 1 && (beat === 0 || (stage >= 3 && beat === 2))) {
+    mtone(midiHz(chord[0] - 24), t, 0.7, 'sine', 0.08);
+  }
+  // layer 2 — pentatonic arpeggio, eighth notes
+  if (stage >= 2) {
+    for (let h = 0; h < 2; h++) {
+      if (Math.random() < 0.6) {
+        const m = chord[(beat + h) % 3] + (Math.random() < 0.3 ? 12 : 0);
+        mtone(midiHz(m), t + h * spb / 2, 0.28, 'triangle', 0.026);
+      }
+    }
+  }
+  // layer 3 — lo-fi heartbeat drums
+  if (stage >= 3) {
+    if (beat === 0 || beat === 2) mkick(t, 0.11);
+    mnoise(t + spb / 2, 0.05, 0.018 + (stage >= 5 ? 0.008 : 0), 7000, 'highpass'); // offbeat tick
+  }
+  // layer 4 — soft snare brush
+  if (stage >= 4 && beat === 2) mnoise(t, 0.12, 0.03, 1800, 'bandpass');
+  // layer 6 — future shimmer
+  if (stage >= 6 && beat === 0 && Math.random() < 0.5) {
+    const m = PENTA[5 + Math.floor(Math.random() * 4)] + 12;
+    mtone(midiHz(m), t, 3, 'sine', 0.018);
+  }
+}
+function musicLoop() {
+  if (!AC || !musicGain) return;
+  if (music.nextNoteTime < AC.currentTime - 1) music.nextNoteTime = AC.currentTime + 0.05;
+  if (!S.musicOn || S.muted) { music.nextNoteTime = Math.max(music.nextNoteTime, AC.currentTime + 0.05); return; }
+  const spb = 60 / MUSIC_TEMPO;
+  while (music.nextNoteTime < AC.currentTime + 0.35) {
+    scheduleBeat(music.nextNoteTime, music.bar, music.beat);
+    music.beat++;
+    if (music.beat === 4) { music.beat = 0; music.bar++; }
+    music.nextNoteTime += spb;
+  }
+}
+function startMusic() {
+  if (!AC || music.timer) return;
+  initMusic();
+  music.nextNoteTime = AC.currentTime + 0.1;
+  music.timer = setInterval(musicLoop, 120);
 }
 function tone(freq, dur, type, vol, slide) {
   if (!AC || S.muted) return;
@@ -2441,6 +2571,15 @@ function draw() {
 document.getElementById('muteBtn').addEventListener('click', () => {
   S.muted = !S.muted;
   document.getElementById('muteBtn').textContent = S.muted ? '🔇' : '🔊';
+  applyMusicVol();
+});
+document.getElementById('musicBtn').addEventListener('click', () => {
+  ensureAudio();
+  S.musicOn = !S.musicOn;
+  document.getElementById('musicBtn').textContent = S.musicOn ? '🎵' : '🎶';
+  document.getElementById('musicBtn').style.opacity = S.musicOn ? '1' : '.45';
+  applyMusicVol();
+  save();
 });
 document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('resetOverlay').classList.add('show');
@@ -2462,6 +2601,7 @@ const loaded = load();
 if (loaded) {
   rebuildFeatures();
   document.getElementById('muteBtn').textContent = S.muted ? '🔇' : '🔊';
+  document.getElementById('musicBtn').style.opacity = S.musicOn ? '1' : '.45';
   // offline earnings
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
   const ps = perSec();
