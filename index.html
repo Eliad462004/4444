@@ -84,7 +84,7 @@
   }
   .card {
     background:linear-gradient(145deg, rgba(50,60,130,.42), rgba(12,16,44,.52));
-    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     border:1.5px solid rgba(110,130,255,.4); border-radius:14px; padding:10px;
     color:#fff; cursor:pointer; text-align:center; transition:transform .1s, border-color .2s;
     animation:reveal .5s ease; flex-shrink:0;
@@ -128,7 +128,7 @@
   #quest {
     position:fixed; right:10px; top:96px; width:176px; z-index:10;
     background:linear-gradient(145deg, rgba(60,52,120,.4), rgba(18,15,45,.5));
-    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     border:1.5px solid rgba(255,200,90,.4); border-radius:14px; padding:10px;
     color:#fff; text-align:center; display:none;
   }
@@ -727,19 +727,34 @@ function drawRobot(t) {
   const bg = ctx.createLinearGradient(0, topY, 0, baseY);
   bg.addColorStop(0, body);
   bg.addColorStop(1, accent);
+  const traceBody = () => {
+    ctx.beginPath();
+    ctx.moveTo(-13, baseY);
+    ctx.lineTo(13, baseY);
+    ctx.quadraticCurveTo(16, baseY, 18, baseY - 8);
+    ctx.lineTo(21, topY + 6);
+    ctx.quadraticCurveTo(22, topY, 16, topY);
+    ctx.lineTo(-16, topY);
+    ctx.quadraticCurveTo(-22, topY, -21, topY + 6);
+    ctx.lineTo(-18, baseY - 8);
+    ctx.quadraticCurveTo(-16, baseY, -13, baseY);
+    ctx.closePath();
+  };
   ctx.fillStyle = bg;
-  ctx.beginPath();
-  ctx.moveTo(-13, baseY);
-  ctx.lineTo(13, baseY);
-  ctx.quadraticCurveTo(16, baseY, 18, baseY - 8);
-  ctx.lineTo(21, topY + 6);
-  ctx.quadraticCurveTo(22, topY, 16, topY);
-  ctx.lineTo(-16, topY);
-  ctx.quadraticCurveTo(-22, topY, -21, topY + 6);
-  ctx.lineTo(-18, baseY - 8);
-  ctx.quadraticCurveTo(-16, baseY, -13, baseY);
-  ctx.closePath();
+  traceBody();
   ctx.fill();
+
+  // rim light — bright edge along the sunlit side gives 3D volume
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.rect(9, topY - 3, 16, (baseY - topY) + 5); ctx.clip();
+  traceBody();
+  ctx.strokeStyle = 'rgba(215,240,255,0.75)';
+  ctx.lineWidth = 1.8;
+  ctx.shadowColor = 'rgba(200,235,255,0.9)'; ctx.shadowBlur = 5;
+  ctx.stroke();
+  ctx.restore();
+  if (tier.glow) { ctx.shadowColor = body; ctx.shadowBlur = 26; }
 
   // paneling: seams, vents, rivets — this is a machine, not a toy blob
   ctx.save();
@@ -838,6 +853,16 @@ function drawRobot(t) {
   hg.addColorStop(0, body); hg.addColorStop(1, accent);
   ctx.fillStyle = hg;
   roundRect(-21, headY - 30, 42, 30, 11); ctx.fill();
+  // rim light on the head's sunlit edge
+  ctx.save();
+  ctx.shadowBlur = 0;
+  ctx.beginPath(); ctx.rect(11, headY - 32, 13, 34); ctx.clip();
+  roundRect(-21, headY - 30, 42, 30, 11);
+  ctx.strokeStyle = 'rgba(215,240,255,0.75)';
+  ctx.lineWidth = 1.8;
+  ctx.shadowColor = 'rgba(200,235,255,0.9)'; ctx.shadowBlur = 5;
+  ctx.stroke();
+  ctx.restore();
   ctx.save();
   ctx.shadowBlur = 0;
   ctx.strokeStyle = 'rgba(10,15,30,0.22)'; ctx.lineWidth = 1;
