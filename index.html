@@ -149,6 +149,22 @@
   .qOpt:active { transform:scale(.93); }
   .qOpt .qi { font-size:24px; line-height:1.2; }
 
+  /* ---- timed challenge ---- */
+  #challenge {
+    position:fixed; top:calc(158px + env(safe-area-inset-top, 0px)); right:0; left:0;
+    margin:0 auto; width:250px; z-index:12; display:none; text-align:center;
+    background:linear-gradient(145deg, rgba(120,60,10,.5), rgba(60,25,5,.6));
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border:1.5px solid rgba(255,170,60,.7); border-radius:14px; padding:8px 12px;
+    color:#ffe9a0; font-weight:700; font-size:15px;
+    animation:pulseGlow 1s infinite alternate;
+  }
+  #chBarWrap { height:8px; background:rgba(0,0,0,.5); border-radius:5px; margin-top:6px; overflow:hidden;
+    border:1px solid rgba(255,170,60,.4); }
+  #chBar { height:100%; width:0%; background:linear-gradient(90deg,#ff9a2e,#ffe24a);
+    box-shadow:0 0 8px rgba(255,180,74,.8); transition:width .2s; }
+  #specChoices { display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+
   /* ---- banner ---- */
   #banner {
     position:fixed; top:22%; right:0; left:0; text-align:center; pointer-events:none; z-index:20;
@@ -288,6 +304,25 @@
   <div id="planetChoices"></div>
 </div>
 
+<div id="challenge"></div>
+
+<div class="overlay" id="specOverlay">
+  <h2>🔬 בחר מסלול טכנולוגי</h2>
+  <div style="color:#aab6e8;font-size:13px">בחירה של פעם אחת — היא תלווה אותך לתמיד!</div>
+  <div id="specChoices">
+    <div class="planetOpt" data-spec="click">
+      <div style="font-size:52px">⛏️</div>
+      <div class="pname">טכנולוגיית כרייה</div>
+      <div class="ptag">+50% לכל לחיצה</div>
+    </div>
+    <div class="planetOpt" data-spec="auto">
+      <div style="font-size:52px">🤖</div>
+      <div class="pname">טכנולוגיית אוטומציה</div>
+      <div class="ptag">+50% להכנסה אוטומטית</div>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="bankOverlay">
   <div id="bankBox">
     <h2>📈 בורסת החלל</h2>
@@ -343,13 +378,13 @@ const TIERS = [
 ];
 
 const STAGES = [
-  { at:0,       key:'dead',    name:'כוכב מת',       msg:null },
-  { at:150,     key:'mine',    name:'מכרה ראשון',    msg:'⛏️ מכרה ראשון נפתח על הכוכב!' },
-  { at:800,     key:'grass',   name:'צמחייה ראשונה', msg:'🌱 צמחייה ראשונה מופיעה על הכוכב!' },
-  { at:5000,    key:'factory', name:'עידן התעשייה',  msg:'🏭 מפעלים נבנים על הכוכב!' },
-  { at:30000,   key:'city',    name:'עיר מתפתחת',    msg:'🏙️ עיר מתפתחת על הכוכב!' },
-  { at:200000,  key:'living',  name:'עולם חי',       msg:'🌍 הכוכב הפך לעולם חי!' },
-  { at:1000000, key:'future',  name:'עידן העתיד',    msg:'🌌 הכוכב הגיע לעידן העתיד!' },
+  { at:0,       key:'dead',    name:'עידן האבן',      msg:null },
+  { at:150,     key:'mine',    name:'עידן הברזל',     msg:'⛏️ הכוכב נכנס לעידן הברזל — מכרה ראשון נפתח!' },
+  { at:800,     key:'grass',   name:'עידן הצמיחה',    msg:'🌱 עידן הצמיחה — צמחייה ראשונה מופיעה!' },
+  { at:5000,    key:'factory', name:'עידן התעשייה',   msg:'🏭 עידן התעשייה — מפעלים נבנים על הכוכב!' },
+  { at:30000,   key:'city',    name:'עידן העיר',      msg:'🏙️ עידן העיר — מטרופולין מתפתח!' },
+  { at:200000,  key:'living',  name:'עידן העולם החי', msg:'🌍 עידן העולם החי — הכוכב נושם!' },
+  { at:1000000, key:'future',  name:'עידן החלל',      msg:'🌌 עידן החלל — הכוכב הגיע לעתיד!' },
 ];
 
 const QUESTS = [
@@ -375,10 +410,17 @@ const FUNDS = [
   { id:'safe',  icon:'🏦', name:'קופת גמל גלקטית',    risk:'סיכון נמוך',  riskCls:'low',
     rate:() => 0.05 },
   { id:'index', icon:'📊', name:'מדד הכוכבים 500',    risk:'סיכון בינוני', riskCls:'mid',
-    rate:() => 0.07 + 0.05*Math.sin(now*0.07) + 0.03*Math.sin(now*0.023 + 2) },
+    rate:() => 0.07 + 0.05*Math.sin(now*0.07) + 0.03*Math.sin(now*0.023 + 2) + eventMarketShift() * 0.5 },
   { id:'turbo', icon:'🚀', name:'מניית טורבו-קריסטל', risk:'סיכון גבוה',  riskCls:'high',
-    rate:() => 0.12 + 0.28*Math.sin(now*0.11 + 1) + 0.18*Math.sin(now*0.037 + 4) },
+    rate:() => 0.12 + 0.28*Math.sin(now*0.11 + 1) + 0.18*Math.sin(now*0.037 + 4) + eventMarketShift() },
 ];
+// the market reacts to what happens on the planet
+function eventMarketShift() {
+  let shift = 0;
+  if (events.active === 'meteors') shift += 0.2; // mining stocks surge on fresh resources
+  if (hacker.on) shift -= 0.15;                  // hacks scare investors
+  return shift;
+}
 
 const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
 const DEST_PLANETS = [
@@ -403,6 +445,7 @@ function defaultState() {
     stage:0, unlocked:{pick:true},
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
     bankUnlocked:false, everInvested:false, fundProfitTotal:0, musicOn:true,
+    specialty:null,
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -416,8 +459,8 @@ function stageAt(i) { return STAGES[i].at * scaleFactor(); }
 function lvl(id) { return S.levels[id] || 0; }
 function cost(u) { return Math.ceil(u.base * scaleFactor() * Math.pow(u.growth, lvl(u.id))); }
 function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult; }
-function perClick() { return (1 + lvl('pick') + 25 * lvl('drill')) * incomeMult() * S.prestClick; }
-function perSec()   { return (lvl('miner') + 8 * lvl('drone') + 60 * lvl('fleet')) * incomeMult() * S.prestAuto; }
+function perClick() { return (1 + lvl('pick') + 25 * lvl('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult; }
+function perSec()   { return (lvl('miner') + 8 * lvl('drone') + 60 * lvl('fleet')) * incomeMult() * S.prestAuto * (S.specialty === 'auto' ? 1.5 : 1) * rush.mult; }
 function robotTier() {
   let t = TIERS[0];
   for (const c of TIERS) if (S.robotXP >= c.lvl) t = c;
@@ -1380,6 +1423,169 @@ function updateUnits(dt) {
   }
 }
 
+// ---------- random events: meteor shower, robot hacker, rush challenge ----------
+const events = { active:null, t:0, next:100 };
+let meteorDrops = [];
+const hacker = { on:false, x:0, y:0, landY:0, taps:0, stolen:0, t:0, hitT:0 };
+const challenge = { on:false, t:0, target:0, earned:0 };
+const rush = { mult:1, t:0 };
+
+function startEvent(kind) {
+  events.active = kind; events.t = 0;
+  if (kind === 'meteors') {
+    banner('☄️ מטר מטאורים! לחץ על המטאורים לפני שייעלמו!');
+    sfx('rumble'); buzz(20);
+  } else if (kind === 'hacker') {
+    const sp = surfacePoint(0.38);
+    hacker.on = true; hacker.taps = 0; hacker.stolen = 0; hacker.t = 0; hacker.hitT = 0;
+    hacker.x = sp.x; hacker.y = -50; hacker.landY = sp.y;
+    banner('🦹 האקר רובוטי גונב מטבעות! לחץ עליו 3 פעמים לגרש אותו!');
+    sfx('rumble'); buzz([20, 20, 20]);
+  } else if (kind === 'challenge') {
+    challenge.on = true; challenge.t = 30;
+    challenge.target = Math.ceil(Math.max(100, perClick() * 35 + perSec() * 20));
+    challenge.earned = 0;
+    document.getElementById('challenge').style.display = 'block';
+    banner('⚡ אתגר קצב מטורף! כרה ' + fmt(challenge.target) + ' תוך 30 שניות!');
+    sfx('tier'); buzz(25);
+  }
+}
+
+function updateEvents(dt) {
+  if (mode !== 'play') return;
+  if (!events.active && !challenge.on && !hacker.on) {
+    events.next -= dt;
+    if (events.next <= 0) {
+      events.next = 240 + Math.random() * 120; // every ~4-6 minutes
+      const kinds = ['meteors', 'hacker', 'challenge'];
+      startEvent(kinds[Math.floor(Math.random() * kinds.length)]);
+    }
+  }
+  // meteor shower — tappable resource meteors
+  if (events.active === 'meteors') {
+    events.t += dt;
+    if (events.t < 9 && meteorDrops.length < 6 && Math.random() < dt * 1.3) {
+      const a = (Math.random() - 0.5) * 0.9;
+      const sp = surfacePoint(a);
+      meteorDrops.push({ x: sp.x + (Math.random()-0.5)*220, y: -30, tx: sp.x, ty: sp.y,
+        state:'fall', life:4, seed:Math.random() });
+    }
+    if (events.t > 14 && !meteorDrops.length) events.active = null;
+  }
+  for (const m of meteorDrops) {
+    if (m.state === 'fall') {
+      const dx = m.tx - m.x, dy = m.ty - m.y;
+      const d = Math.hypot(dx, dy);
+      const sp = 280 * dt;
+      if (d < sp) {
+        m.x = m.tx; m.y = m.ty; m.state = 'landed';
+        shake = Math.min(shake + 3, 10);
+        burstRocks(m.x, m.y, 6);
+        sfx('land');
+      } else { m.x += dx/d*sp; m.y += dy/d*sp; }
+    } else {
+      m.life -= dt;
+    }
+  }
+  meteorDrops = meteorDrops.filter(m => m.life > 0);
+  // hacker — drains coins until tapped 3 times
+  if (hacker.on) {
+    hacker.t += dt;
+    if (hacker.hitT > 0) hacker.hitT -= dt * 4;
+    if (hacker.y < hacker.landY - 26) {
+      hacker.y += 170 * dt;
+    } else if (hacker.t < 14) {
+      const steal = S.money * 0.009 * dt;
+      if (S.money > 1) { S.money -= steal; hacker.stolen += steal; }
+    }
+    if (hacker.t >= 14) {
+      hacker.on = false; events.active = null;
+      banner('🦹 ההאקר ברח עם ' + fmt(hacker.stolen) + ' 💰! בפעם הבאה תהיה מהיר יותר');
+      refreshHud();
+    }
+  }
+  // rush challenge — mine the target before the clock runs out
+  if (challenge.on) {
+    challenge.t -= dt;
+    const el = document.getElementById('challenge');
+    el.innerHTML = '⚡ ' + Math.max(0, Math.ceil(challenge.t)) + ' שנ׳ · ' +
+      fmt(Math.min(challenge.earned, challenge.target)) + ' / ' + fmt(challenge.target) +
+      '<div id="chBarWrap"><div id="chBar" style="width:' + Math.min(100, challenge.earned / challenge.target * 100) + '%"></div></div>';
+    if (challenge.earned >= challenge.target) {
+      challenge.on = false; events.active = null;
+      el.style.display = 'none';
+      rush.mult = 2; rush.t = 60;
+      banner('🏆 עמדת באתגר! פי 2 הכנסות לדקה שלמה!');
+      flash = 0.4; sfx('quest'); buzz([30, 30, 50]);
+      burstConfetti(W/2, H*0.3, 50);
+      refreshHud();
+    } else if (challenge.t <= 0) {
+      challenge.on = false; events.active = null;
+      el.style.display = 'none';
+      banner('כמעט! ' + fmt(challenge.earned) + ' מתוך ' + fmt(challenge.target) + ' — ננסה שוב בקרוב 💪');
+    }
+  }
+  if (rush.t > 0) {
+    rush.t -= dt;
+    if (rush.t <= 0) { rush.mult = 1; banner('בונוס פי 2 הסתיים — היה מטורף! 🔥'); refreshHud(); }
+  }
+}
+
+function drawEventActors(t) {
+  // resource meteors
+  for (const m of meteorDrops) {
+    ctx.save();
+    if (m.state === 'fall') {
+      const ang = Math.atan2(m.ty - m.y, m.tx - m.x);
+      const tg = ctx.createLinearGradient(m.x, m.y, m.x - Math.cos(ang)*60, m.y - Math.sin(ang)*60);
+      tg.addColorStop(0, 'rgba(255,180,80,0.9)'); tg.addColorStop(1, 'rgba(255,180,80,0)');
+      ctx.strokeStyle = tg; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - Math.cos(ang)*60, m.y - Math.sin(ang)*60); ctx.stroke();
+    }
+    const alpha = m.state === 'landed' ? Math.min(1, m.life) : 1;
+    ctx.globalAlpha = alpha;
+    ctx.translate(m.x, m.y);
+    ctx.rotate(m.seed * 7 + (m.state === 'fall' ? t * 4 : 0));
+    const pulse = 1 + Math.sin(t*5 + m.seed*9) * 0.12;
+    ctx.scale(pulse, pulse);
+    ctx.shadowColor = '#ffb04a'; ctx.shadowBlur = 18;
+    ctx.fillStyle = '#7a5a3a';
+    ctx.beginPath();
+    ctx.moveTo(-13, 4); ctx.lineTo(-7, -11); ctx.lineTo(6, -13); ctx.lineTo(14, -2); ctx.lineTo(8, 10); ctx.lineTo(-6, 12);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#ffcf5a';
+    ctx.beginPath(); ctx.arc(-2, -1, 4.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6, 3, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  // hacker robot
+  if (hacker.on) {
+    ctx.save();
+    ctx.translate(hacker.x + (hacker.hitT > 0 ? (Math.random()-0.5)*8 : 0), hacker.y + Math.sin(t*3)*2);
+    // mini UFO
+    ctx.fillStyle = '#4a4a5a';
+    ctx.beginPath(); ctx.ellipse(0, -26, 17, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,90,90,0.35)';
+    ctx.beginPath(); ctx.arc(0, -29, 8, Math.PI, 0); ctx.fill();
+    // body
+    ctx.fillStyle = hacker.hitT > 0 ? '#fff' : '#2a2a38';
+    roundRect(-9, -18, 18, 16, 5); ctx.fill();
+    // evil red eyes
+    ctx.fillStyle = '#ff4a4a';
+    ctx.shadowColor = '#ff4a4a'; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(-4, -12, 2.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(4, -12, 2.2, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // loot sack
+    ctx.font = '16px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('💰', 16, -2);
+    // taps left
+    ctx.font = 'bold 13px Arial';
+    ctx.fillStyle = '#ffd94a';
+    ctx.fillText('👆 ' + (3 - hacker.taps), 0, -38);
+    ctx.restore();
+  }
+}
 // ---------- crystal / crack event ----------
 const crackAnim = { active:false, t:0 };
 const CRYSTAL_ANGLE = -0.3;
@@ -1475,6 +1681,12 @@ function drawRocket(x, y, angle, scale, flame) {
 function startTravel() {
   mode = 'liftoff';
   cine.t = 0;
+  // cancel any live event — we're leaving the planet
+  challenge.on = false;
+  hacker.on = false;
+  meteorDrops = [];
+  events.active = null;
+  document.getElementById('challenge').style.display = 'none';
   document.getElementById('panel').style.display = 'none';
   document.getElementById('quest').style.display = 'none';
   sfx('launch');
@@ -1762,6 +1974,10 @@ function buy(u) {
   const prevTier = robotTier();
   S.robotXP++;
   const newTier = robotTier();
+  // strategic tech-path choice at level 20
+  if (!S.specialty && S.robotXP >= 20) {
+    document.getElementById('specOverlay').classList.add('show');
+  }
   robot.jumpT = 1;
   robot.happy = 2;
   unitJoy = 1; // the whole crew celebrates
@@ -1797,9 +2013,11 @@ function refreshHud() {
   moneyEl.style.color = mc;
   moneyEl.style.textShadow = `0 0 18px ${ms}, 0 2px 0 rgba(0,0,0,.85), 2px 0 0 rgba(0,0,0,.6), -2px 0 0 rgba(0,0,0,.6), 0 -2px 0 rgba(0,0,0,.6), 0 3px 8px rgba(0,0,0,.9)`;
   const ps = perSec();
-  incomeEl.textContent = ps > 0
+  let inc = ps > 0
     ? `⚡ ${fmt(ps)} לשנייה · 👆 ${fmt(perClick())} ללחיצה`
     : `👆 ${fmt(perClick())} ללחיצה`;
+  if (rush.t > 0) inc += ` · 🔥 פי 2 עוד ${Math.ceil(rush.t)} שנ׳`;
+  incomeEl.textContent = inc;
   const tier = robotTier();
   if (S.robotXP > 0) {
     badgeEl.style.display = 'block';
@@ -1903,7 +2121,10 @@ questEl.addEventListener('pointerdown', e => {
 
 // ---------- space stock exchange ----------
 function renderBank() {
-  document.getElementById('bankCash').textContent = '💰 בארנק: ' + fmt(S.money);
+  let cash = '💰 בארנק: ' + fmt(S.money);
+  if (events.active === 'meteors') cash += ' · ☄️ מטר מטאורים — מניות הכרייה מזנקות!';
+  if (hacker.on) cash += ' · 🦹 האקר בשטח — השוק בלחץ!';
+  document.getElementById('bankCash').textContent = cash;
   const list = document.getElementById('fundList');
   list.innerHTML = FUNDS.map(f => {
     const st = S.funds[f.id];
@@ -1945,6 +2166,20 @@ document.getElementById('fundList').addEventListener('pointerdown', e => {
     sfx('buy'); buzz(12);
   }
   popMoney(); refreshHud(); refreshCards(); updateQuest(); renderBank(); save();
+});
+document.querySelectorAll('#specChoices .planetOpt').forEach(el => {
+  el.addEventListener('pointerdown', () => {
+    ensureAudio();
+    S.specialty = el.dataset.spec;
+    document.getElementById('specOverlay').classList.remove('show');
+    banner(el.dataset.spec === 'click'
+      ? '⛏️ בחרת בטכנולוגיית כרייה! +50% לכל לחיצה לתמיד'
+      : '🤖 בחרת בטכנולוגיית אוטומציה! +50% להכנסה אוטומטית לתמיד');
+    flash = 0.35;
+    burstConfetti(W/2, H*0.35, 40);
+    sfx('tier'); buzz([25, 25, 40]);
+    refreshHud(); save();
+  });
 });
 document.getElementById('bankBtn').addEventListener('click', () => {
   ensureAudio();
@@ -1996,6 +2231,7 @@ function earn(amount) {
   S.money += amount;
   S.totalEarned += amount;
   S.earnedPlanet += amount;
+  if (challenge.on) challenge.earned += amount;
   checkUnlocks();
   checkStage();
   while (S.milestoneIdx < 12 && S.totalEarned >= milestoneAt(S.milestoneIdx)) {
@@ -2053,6 +2289,42 @@ function doClick(cx_, cy_) {
   // golden comet catch (generous tap radius for kids)
   if (comet && cx_ !== undefined && Math.hypot(cx_ - comet.x, cy_ - comet.y) < 52) {
     collectComet();
+    return;
+  }
+
+  // resource meteor catch
+  if (cx_ !== undefined) {
+    for (let i = 0; i < meteorDrops.length; i++) {
+      const m = meteorDrops[i];
+      if (Math.hypot(cx_ - m.x, cy_ - m.y) < 48) {
+        const gain = perClick() * 8 + perSec() * 3;
+        earn(gain);
+        addFloat(m.x, m.y - 30, '☄️ +' + fmt(gain), '#ffcf5a', 24, -2.4);
+        burstSparks(m.x, m.y, 14, '#ffcf5a');
+        burstCoins(m.x, m.y, 5);
+        meteorDrops.splice(i, 1);
+        sfx('coin'); buzz(18);
+        popMoney(); refreshHud(); refreshCards(); updateQuest();
+        return;
+      }
+    }
+  }
+
+  // chase the hacker
+  if (hacker.on && cx_ !== undefined && Math.hypot(cx_ - hacker.x, cy_ - (hacker.y - 14)) < 55) {
+    hacker.taps++;
+    hacker.hitT = 1;
+    burstSparks(hacker.x, hacker.y - 14, 8, '#ff8a6a');
+    sfx('hit'); buzz(15);
+    if (hacker.taps >= 3) {
+      const back = hacker.stolen * 0.6;
+      S.money += back;
+      hacker.on = false; events.active = null;
+      banner('🎉 גירשת את ההאקר! החזרת ' + fmt(back) + ' 💰');
+      burstConfetti(hacker.x, hacker.y - 20, 30);
+      sfx('quest'); buzz([20, 25, 35]);
+      popMoney(); refreshHud();
+    }
     return;
   }
 
@@ -2253,6 +2525,9 @@ function update(dt) {
   if (mode === 'play' || mode === 'crack') updateUnits(dt);
   if (unitJoy > 0) unitJoy = Math.max(0, unitJoy - dt * 1.1);
 
+  // random events
+  updateEvents(dt);
+
   // star parallax drift — three depth layers at different speeds
   if (mode === 'play' || mode === 'crack') {
     for (const s of stars) {
@@ -2444,6 +2719,7 @@ function draw() {
     ctx.fillStyle = sl;
     ctx.beginPath(); ctx.arc(rp.x, rp.y - 55, 160, 0, Math.PI*2); ctx.fill();
     drawRobot(now);
+    drawEventActors(now);
     // tutorial hint
     if (!tutorialDone) {
       if (S.clicks >= 5) tutorialDone = true;
