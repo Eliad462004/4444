@@ -39,7 +39,15 @@
     border:1px solid rgba(120,220,255,.4); overflow:hidden; display:none;
   }
   #energyBar { height:100%; width:100%; border-radius:6px;
-    background:linear-gradient(90deg,#2de0ff,#7dffb0); transition:width .15s linear; }
+    background:linear-gradient(90deg,#2de0ff,#7dffb0); transition:width .15s linear;
+    box-shadow:0 0 8px rgba(125,255,176,.8); }
+  /* glowing leading edge on all progress bars */
+  #energyBar, #stageBar, #qBar { position:relative; }
+  #energyBar::after, #stageBar::after, #qBar::after {
+    content:''; position:absolute; inset-inline-end:-1px; top:50%;
+    width:7px; height:7px; border-radius:50%; transform:translateY(-50%);
+    background:#fff; filter:blur(2px); opacity:.95;
+  }
   #stageWrap { margin-top:4px; text-align:center; }
   #stageLabel { font-size:11px; color:#bcd6a8; text-shadow:0 1px 2px #000; margin-bottom:2px; }
   #stageBarWrap {
@@ -47,7 +55,8 @@
     border:1px solid rgba(150,220,140,.4); overflow:hidden;
   }
   #stageBar { height:100%; width:0%; border-radius:5px;
-    background:linear-gradient(90deg,#8ae06a,#ffe27a); transition:width .3s; }
+    background:linear-gradient(90deg,#8ae06a,#ffe27a); transition:width .3s;
+    box-shadow:0 0 8px rgba(255,226,122,.8); }
 
   /* ---- upgrade panel ---- */
   #panel {
@@ -56,7 +65,8 @@
     scrollbar-width:thin;
   }
   .card {
-    background:linear-gradient(145deg, rgba(56,64,122,.94), rgba(28,32,68,.94));
+    background:linear-gradient(145deg, rgba(50,60,130,.42), rgba(12,16,44,.52));
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     border:1.5px solid rgba(110,130,255,.4); border-radius:14px; padding:10px;
     color:#fff; cursor:pointer; text-align:center; transition:transform .1s, border-color .2s;
     animation:reveal .5s ease; flex-shrink:0;
@@ -64,8 +74,8 @@
   @keyframes reveal { from { opacity:0; transform:translateY(18px) scale(.9);} to { opacity:1; transform:none; } }
   .card:hover { transform:scale(1.04); }
   .card:active { transform:scale(.96); }
-  .card.cant { opacity:.5; filter:grayscale(.5); }
-  .card.ready { animation:readyPulse 1.5s infinite; }
+  .card.cant { opacity:.42; filter:grayscale(.65); }
+  .card.ready { animation:readyPulse 1.5s infinite; border-color:#ffd94a; }
   @keyframes readyPulse {
     0%,100% { box-shadow:0 0 4px rgba(255,220,120,.25); }
     50%     { box-shadow:0 0 20px rgba(255,220,120,.75); }
@@ -97,7 +107,8 @@
   /* ---- quest widget ---- */
   #quest {
     position:fixed; right:10px; top:96px; width:176px; z-index:10;
-    background:linear-gradient(145deg, rgba(50,44,90,.94), rgba(26,22,52,.94));
+    background:linear-gradient(145deg, rgba(60,52,120,.4), rgba(18,15,45,.5));
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     border:1.5px solid rgba(255,200,90,.4); border-radius:14px; padding:10px;
     color:#fff; text-align:center; display:none;
   }
@@ -106,7 +117,8 @@
   #qText { font-size:13px; margin-top:4px; }
   #qBarWrap { height:8px; background:rgba(0,0,0,.5); border-radius:5px; margin-top:7px; overflow:hidden;
     border:1px solid rgba(255,200,90,.3); }
-  #qBar { height:100%; width:0%; background:linear-gradient(90deg,#ffd94a,#ff9a4a); transition:width .3s; }
+  #qBar { height:100%; width:0%; background:linear-gradient(90deg,#ffd94a,#ff9a4a); transition:width .3s;
+    box-shadow:0 0 8px rgba(255,180,74,.8); }
   #qReward { font-size:12px; color:#ffe9a0; margin-top:6px; }
   #qChoose { display:flex; gap:6px; margin-top:8px; }
   .qOpt {
@@ -161,6 +173,44 @@
   .cbtn {
     width:38px; height:38px; border-radius:10px; border:1px solid rgba(130,150,255,.35);
     background:rgba(15,18,45,.7); color:#fff; font-size:18px; cursor:pointer;
+    transition:transform .08s;
+  }
+  .cbtn:active, #offlineBox button:active, #resetBox button:active,
+  .fund button:active, #bankClose:active, .planetOpt:active { transform:scale(.95); }
+
+  /* ---- space stock exchange ---- */
+  #bankBox {
+    background:linear-gradient(160deg, rgba(20,26,60,.7), rgba(8,10,28,.85));
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(130,150,255,.5); border-radius:20px;
+    padding:20px 22px; color:#fff; width:min(92vw, 380px); max-height:86vh; overflow-y:auto;
+    text-align:center;
+  }
+  #bankBox h2 { font-size:22px; margin-bottom:4px; text-shadow:0 0 14px rgba(120,180,255,.7); }
+  #bankSub { font-size:12px; color:#aab6e8; margin-bottom:8px; }
+  #bankCash { color:#ffd94a; font-weight:700; margin-bottom:12px; }
+  .fund {
+    background:rgba(255,255,255,.06); border:1px solid rgba(130,150,255,.3);
+    border-radius:14px; padding:10px 12px; margin-bottom:10px; text-align:right;
+  }
+  .fhead { display:flex; align-items:center; gap:8px; }
+  .ficon { font-size:28px; }
+  .fname { font-weight:700; font-size:15px; }
+  .frisk { font-size:11px; }
+  .frisk.low { color:#7dffb0; } .frisk.mid { color:#ffd94a; } .frisk.high { color:#ff8a6a; }
+  .frate { font-size:13px; margin-top:6px; font-weight:700; }
+  .frate.up { color:#7dffb0; } .frate.down { color:#ff8a6a; }
+  .fbal { font-size:12px; color:#c8d2f0; margin-top:2px; }
+  .fbtns { display:flex; gap:6px; margin-top:8px; }
+  .fund button {
+    flex:1; padding:7px 4px; font-size:12.5px; font-weight:700; border:none; border-radius:9px;
+    background:linear-gradient(180deg,#ffd23e,#ff9a1e); color:#3a2000; cursor:pointer;
+  }
+  .fund button[disabled] { opacity:.4; }
+  .fund button:last-child { background:linear-gradient(180deg,#5a8aff,#3050c0); color:#fff; }
+  #bankClose {
+    margin-top:4px; padding:9px 30px; border:none; border-radius:10px;
+    background:linear-gradient(145deg,#3a6aff,#2340b0); color:#fff; font-size:15px; font-weight:700; cursor:pointer;
   }
 
   @media (max-width:640px) {
@@ -209,11 +259,22 @@
 <div id="corner">
   <button class="cbtn" id="muteBtn" title="צליל">🔊</button>
   <button class="cbtn" id="resetBtn" title="איפוס">🗑️</button>
+  <button class="cbtn" id="bankBtn" title="בורסת החלל" style="display:none">📈</button>
 </div>
 
 <div class="overlay" id="spaceOverlay">
   <h2>בחר כוכב חדש 🚀</h2>
   <div id="planetChoices"></div>
+</div>
+
+<div class="overlay" id="bankOverlay">
+  <div id="bankBox">
+    <h2>📈 בורסת החלל</h2>
+    <div id="bankSub">השקע מטבעות וצפה בהם גדלים בריבית דריבית — או משוך אותם בחזרה מתי שתרצה</div>
+    <div id="bankCash"></div>
+    <div id="fundList"></div>
+    <button id="bankClose">חזרה לכרייה ✖</button>
+  </div>
 </div>
 
 <div class="overlay" id="offlineOverlay">
@@ -283,6 +344,19 @@ const QUESTS = [
   { icon:'🦾', text:'שדרג את הרובוט לרמה 50',    p:() => S.robotXP,            g:50,  r:1000000 },
   { icon:'🌍', text:'הפוך כוכב לעולם חי',        p:() => S.everLiving ? 1:0,   g:1,   r:5000000 },
   { icon:'🦾', text:'שדרג את הרובוט לרמה 100',   p:() => S.robotXP,            g:100, r:50000000 },
+  { icon:'📈', text:'השקע בבורסת החלל',          p:() => S.everInvested ? 1:0, g:1,   r:2000 },
+  { icon:'🏦', text:'צבור 5,000 רווח מהשקעות',   p:() => Math.floor(S.fundProfitTotal), g:5000, r:25000 },
+];
+
+// ---------- space stock exchange funds ----------
+const BANK_UNLOCK_AT = 3000;
+const FUNDS = [
+  { id:'safe',  icon:'🏦', name:'קופת גמל גלקטית',    risk:'סיכון נמוך',  riskCls:'low',
+    rate:() => 0.05 },
+  { id:'index', icon:'📊', name:'מדד הכוכבים 500',    risk:'סיכון בינוני', riskCls:'mid',
+    rate:() => 0.07 + 0.05*Math.sin(now*0.07) + 0.03*Math.sin(now*0.023 + 2) },
+  { id:'turbo', icon:'🚀', name:'מניית טורבו-קריסטל', risk:'סיכון גבוה',  riskCls:'high',
+    rate:() => 0.12 + 0.28*Math.sin(now*0.11 + 1) + 0.18*Math.sin(now*0.037 + 4) },
 ];
 
 const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
@@ -307,6 +381,8 @@ function defaultState() {
     cracked:false, crystalMult:1,
     stage:0, unlocked:{pick:true},
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
+    bankUnlocked:false, everInvested:false, fundProfitTotal:0,
+    funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
 }
@@ -1495,9 +1571,65 @@ questEl.addEventListener('pointerdown', e => {
   banner('🎯 משימה הושלמה! +' + fmt(q.r) + ' 💰');
   popMoney();
   flash = 0.3;
-  burstConfetti(W/2, H*0.3, 36);
+  const qr = questEl.getBoundingClientRect();
+  addFloat(qr.left + qr.width/2, qr.top + 8, '+' + fmt(q.r) + ' 💰', '#ffd94a', 22);
+  burstConfetti(qr.left + qr.width/2, qr.top + qr.height/2, 36);
   refreshHud(); refreshCards(); updateQuest();
   save();
+});
+
+// ---------- space stock exchange ----------
+function renderBank() {
+  document.getElementById('bankCash').textContent = '💰 בארנק: ' + fmt(S.money);
+  const list = document.getElementById('fundList');
+  list.innerHTML = FUNDS.map(f => {
+    const st = S.funds[f.id];
+    const r = f.rate() * 100;
+    const profit = st.bal - st.dep;
+    return `<div class="fund">
+      <div class="fhead"><span class="ficon">${f.icon}</span>
+        <div><div class="fname">${f.name}</div><div class="frisk ${f.riskCls}">${f.risk}</div></div>
+      </div>
+      <div class="frate ${r >= 0 ? 'up' : 'down'}">תשואה: ${r >= 0 ? '+' : ''}${r.toFixed(1)}% לדקה</div>
+      <div class="fbal">מושקע: ${fmt(st.bal)}${st.dep > 0 ? ' · רווח: ' + (profit >= 0 ? '+' : '−') + fmt(Math.abs(profit)) : ''}</div>
+      <div class="fbtns">
+        <button data-f="${f.id}" data-a="10">הפקד 10%</button>
+        <button data-f="${f.id}" data-a="50">הפקד 50%</button>
+        <button data-f="${f.id}" data-a="w" ${st.bal < 1 ? 'disabled' : ''}>משוך הכול</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('fundList').addEventListener('pointerdown', e => {
+  const btn = e.target.closest('button');
+  if (!btn || btn.disabled) return;
+  ensureAudio();
+  const f = S.funds[btn.dataset.f];
+  if (btn.dataset.a === 'w') {
+    if (f.bal < 1) return;
+    const profit = Math.max(0, f.bal - f.dep);
+    S.money += f.bal - profit;
+    if (profit > 0) earn(profit); // profit counts as real income
+    f.bal = 0; f.dep = 0;
+    sfx('coin'); buzz(15);
+  } else {
+    const pct = parseInt(btn.dataset.a, 10) / 100;
+    const amt = Math.floor(S.money * pct);
+    if (amt < 1) { sfx('hit'); return; }
+    S.money -= amt;
+    f.bal += amt; f.dep += amt;
+    S.everInvested = true;
+    sfx('buy'); buzz(12);
+  }
+  popMoney(); refreshHud(); refreshCards(); updateQuest(); renderBank(); save();
+});
+document.getElementById('bankBtn').addEventListener('click', () => {
+  ensureAudio();
+  renderBank();
+  document.getElementById('bankOverlay').classList.add('show');
+});
+document.getElementById('bankClose').addEventListener('click', () => {
+  document.getElementById('bankOverlay').classList.remove('show');
 });
 
 // ---------- money milestones ----------
@@ -1547,11 +1679,17 @@ function earn(amount) {
     S.milestoneIdx++;
     celebrateMilestone(milestoneAt(S.milestoneIdx - 1));
   }
+  if (!S.bankUnlocked && S.totalEarned >= BANK_UNLOCK_AT) {
+    S.bankUnlocked = true;
+    document.getElementById('bankBtn').style.display = '';
+    banner('📈 בורסת החלל נפתחה! לחץ על הכפתור למעלה');
+    sfx('tier');
+  }
   if (!S.cracked && !crackAnim.active && S.earnedPlanet >= crackAt()) triggerCrack();
   if (S.earnedPlanet >= travelAt() && !document.getElementById('travelBtn')) renderPanel();
 }
 
-function hitEffects(gain, big) {
+function hitEffects(gain, big, fx, fy) {
   const ip = impactPoint();
   robot.hitT = 1;
   shake = Math.min(shake + (big ? 3 : 1.2) + S.robotXP * 0.04, big ? 14 : 6);
@@ -1560,7 +1698,10 @@ function hitEffects(gain, big) {
   burstRocks(ip.x, ip.y, S.robotXP * 0.3 + (big ? 4 : 2));
   burstSparks(ip.x, ip.y, big ? Math.min(4 + Math.floor(S.robotXP / 6), 14) : 2);
   if (big) burstCoins(ip.x, ip.y - 8, Math.min(1 + Math.floor(S.robotXP / 12), 6));
-  addFloat(ip.x + (Math.random()-0.5)*40, ip.y - 50, '+' + fmt(gain),
+  // the +number pops right where the finger tapped
+  const flx = fx !== undefined ? fx : ip.x + (Math.random()-0.5)*40;
+  const fly = fy !== undefined ? fy - 24 : ip.y - 50;
+  addFloat(flx, fly, '+' + fmt(gain),
     big ? '#ffd94a' : 'rgba(255,217,74,0.75)',
     (big ? 17 : 13) + Math.min(S.robotXP * 0.1, 10));
   const tool = robotTier().tool;
@@ -1621,7 +1762,7 @@ function doClick(cx_, cy_) {
   robot.happy = 1.2;
   if (S.clicks % 5 === 0) robot.jumpT = Math.max(robot.jumpT, 0.6);
 
-  hitEffects(gain, true);
+  hitEffects(gain, true, cx_, cy_);
   if (mult < 1) {
     const ip = impactPoint();
     addFloat(ip.x, ip.y - 80, 'אין אנרגיה! 😴', '#ff9a6a', 14);
@@ -1698,7 +1839,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) save(
 // ---------- main loop ----------
 let now = 0, last = 0;
 let tutorialDone = false;
-let hudTick = 0;
+let hudTick = 0, bankTick = 0;
 
 function loop(ms) {
   requestAnimationFrame(loop);
@@ -1728,6 +1869,21 @@ function update(dt) {
     work.t += dt;
     const interval = 3.2 / (1 + work.boost);
     if (work.t >= interval) { work.t = 0; doAutoWork(); }
+  }
+
+  // investments compound over time
+  for (const f of FUNDS) {
+    const st = S.funds[f.id];
+    if (st.bal > 0) {
+      const g = st.bal * (f.rate() / 60) * dt;
+      st.bal = Math.max(0, st.bal + g);
+      if (g > 0) S.fundProfitTotal += g;
+    }
+  }
+  bankTick += dt;
+  if (bankTick > 0.3) {
+    bankTick = 0;
+    if (document.getElementById('bankOverlay').classList.contains('show')) renderBank();
   }
 
   // energy regen
@@ -2095,8 +2251,13 @@ if (loaded) {
     document.getElementById('offlineAmount').textContent = '💰 +' + fmt(gain);
     document.getElementById('offlineOverlay').classList.add('show');
   }
+  // the safe pension fund keeps compounding while away (capped at x2)
+  if (away > 60 && S.funds.safe.bal > 0) {
+    S.funds.safe.bal *= Math.min(2, Math.pow(1 + 0.05/60, Math.min(away, 3600)));
+  }
   if (S.clicks > 5) tutorialDone = true;
 }
+if (S.bankUnlocked) document.getElementById('bankBtn').style.display = '';
 rebuildUnits();
 renderPanel();
 refreshHud();
