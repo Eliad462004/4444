@@ -135,29 +135,100 @@
     box-shadow:0 3px 7px rgba(0,0,0,.45);
   }
 
-  /* ---- bottom sheet ---- */
+  /* ---- bottom sheet: Lamar-style white popup with blue header ---- */
   #sheet {
-    position:fixed; bottom:calc(72px + env(safe-area-inset-bottom, 0px));
-    left:0; right:0; margin:0 auto; width:min(560px, 96vw); max-height:46vh;
-    overflow-y:auto; z-index:13; display:none; padding:10px;
-    background:linear-gradient(160deg, rgba(30,36,80,.6), rgba(10,12,32,.72));
-    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-    border:1.5px solid rgba(140,160,255,.4); border-radius:18px;
+    position:fixed; bottom:calc(78px + env(safe-area-inset-bottom, 0px));
+    left:0; right:0; margin:0 auto; width:min(560px, 96vw); max-height:50vh;
+    overflow-y:auto; z-index:13; display:none; padding:0;
+    background:#eef3fc; border-radius:18px;
+    box-shadow:0 12px 36px rgba(0,0,0,.6);
     scrollbar-width:thin;
     animation:sheetUp .22s ease;
   }
   @keyframes sheetUp { from { opacity:0; transform:translateY(26px); } to { opacity:1; transform:none; } }
-  #sheetInner { display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:8px; }
-  .infoCard {
-    grid-column:1 / -1; background:rgba(255,255,255,.07); border:1px solid rgba(140,160,255,.3);
-    border-radius:14px; padding:12px; color:#fff; text-align:center; font-size:14px;
+  .popHead {
+    position:sticky; top:0; z-index:3;
+    background:linear-gradient(180deg,#6ab0f0,#3f86d8); color:#fff;
+    font-weight:800; font-size:19px; text-align:center; padding:10px 44px;
+    text-shadow:0 1px 3px rgba(0,0,0,.35);
+    box-shadow:0 2px 8px rgba(0,0,0,.2);
   }
-  .infoCard .big { font-size:17px; font-weight:700; margin-bottom:4px; }
-  .infoCard .sub { font-size:12px; color:#aab6e8; margin-top:3px; }
+  .popX {
+    position:absolute; top:6px; inset-inline-end:8px; width:34px; height:34px;
+    border-radius:50%; border:2.5px solid #fff; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #ff8a6a, #d02a20);
+    color:#fff; font-size:14px; font-weight:800;
+    box-shadow:0 3px 8px rgba(0,0,0,.35);
+  }
+  .popX:active { transform:scale(.88); }
+  #sheetInner { display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:8px; padding:10px; }
+  .infoCard {
+    grid-column:1 / -1; background:#fff; border:2px solid #dfe6f2;
+    border-radius:14px; padding:12px; color:#1a2440; text-align:center; font-size:14px;
+  }
+  .infoCard .big { font-size:17px; font-weight:800; margin-bottom:4px; }
+  .infoCard .sub { font-size:12px; color:#5a6a90; margin-top:3px; }
   .swatch {
     width:46px; height:46px; border-radius:50%; margin:0 auto 4px;
-    border:2px solid rgba(255,255,255,.5); box-shadow:inset -8px -8px 14px rgba(0,0,0,.35);
+    border:2px solid #cfd8ea; box-shadow:inset -8px -8px 14px rgba(0,0,0,.3);
   }
+  /* light cards inside the sheet */
+  #sheet .card {
+    background:#fff; color:#1a2440; border:2px solid #dfe6f2;
+    backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:none;
+  }
+  #sheet .card .desc { color:#5a6a90; }
+  #sheet .card .lvl { color:#a07800; }
+  #sheet .card.cant { opacity:.6; }
+
+  /* ---- Lamar-style upgrade rows ---- */
+  .uprow {
+    grid-column:1 / -1; background:#fff; border:2px solid #dfe6f2; border-radius:14px;
+    overflow:hidden; color:#1a2440; cursor:pointer; animation:reveal .4s ease;
+  }
+  .uprow:active { transform:scale(.985); }
+  .upHead {
+    background:linear-gradient(180deg,#6ab0f0,#4390dc); color:#fff; font-weight:800;
+    text-align:center; padding:3px 6px; font-size:14px; text-shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+  .upBody { display:flex; gap:8px; align-items:center; padding:8px 10px 4px; }
+  .upIcon {
+    width:54px; height:54px; flex-shrink:0; font-size:30px;
+    background:#dceaff; border:2px solid #9cc4f0; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .upFx {
+    flex:1; background:#f2f5fa; border:1.5px solid #e2e8f2; border-radius:10px;
+    padding:6px 4px; text-align:center; font-size:12.5px; font-weight:700; min-width:0;
+  }
+  .fxGreen { color:#1a9a3e; }
+  .fxBonus { color:#9a4ae0; font-size:11px; }
+  .upBuy {
+    flex-shrink:0; min-width:88px; text-align:center; font-size:15px; font-weight:800;
+    color:#123a00; padding:11px 8px; border-radius:12px;
+    background:linear-gradient(180deg,#c2f27e,#7cce42 60%,#67bc35);
+    border:2px solid #4a9422; border-bottom-width:5px;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.5);
+  }
+  .uprow:active .upBuy { border-bottom-width:2px; }
+  .uprow.cant .upBuy { background:#d8dce4; color:#8a90a0; border-color:#b8bec8; box-shadow:none; }
+  .uprow.ready .upBuy { animation:readyPulse 1.5s infinite; }
+  .upFoot {
+    display:flex; align-items:center; gap:8px; padding:4px 12px 9px;
+    font-size:11.5px; font-weight:700; color:#4a5a80;
+  }
+  .upBar {
+    flex:1; height:10px; border-radius:6px; background:#e4e8f0; overflow:hidden;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.15);
+  }
+  .upFill { height:100%; background:linear-gradient(90deg,#8ed650,#5cb832); border-radius:6px; transition:width .2s; }
+  .upReq {
+    flex-shrink:0; max-width:110px; color:#fff; border-radius:10px; padding:8px 6px;
+    background:linear-gradient(180deg,#f57a8a,#d84a5a);
+    font-size:11px; font-weight:800; text-align:center;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.3);
+  }
+  .uprow.locked .upIcon { background:#e8e8ee; border-color:#c8c8d2; filter:grayscale(1); }
   .card {
     background:linear-gradient(145deg, rgba(50,60,130,.42), rgba(12,16,44,.52));
     backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -291,48 +362,65 @@
   .cbtn:active, #offlineBox button:active, #resetBox button:active,
   .fund button:active, #bankClose:active, .planetOpt:active { transform:scale(.95); }
 
-  /* ---- space stock exchange ---- */
+  /* ---- space stock exchange (white popup) ---- */
   #bankBox {
-    background:linear-gradient(160deg, rgba(20,26,60,.7), rgba(8,10,28,.85));
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(130,150,255,.5); border-radius:20px;
-    padding:20px 22px; color:#fff; width:min(92vw, 380px); max-height:86vh; overflow-y:auto;
-    text-align:center;
+    background:#eef3fc; border-radius:20px; padding:0; overflow:hidden;
+    color:#1a2440; width:min(92vw, 380px); max-height:86vh; overflow-y:auto;
+    text-align:center; box-shadow:0 12px 36px rgba(0,0,0,.6);
   }
-  #bankBox h2 { font-size:22px; margin-bottom:4px; text-shadow:0 0 14px rgba(120,180,255,.7); }
-  #bankSub { font-size:12px; color:#aab6e8; margin-bottom:8px; }
-  #bankCash { color:#ffd94a; font-weight:700; margin-bottom:12px; }
+  #bankBody { padding:12px 16px 16px; }
+  #bankSub { font-size:12px; color:#5a6a90; margin-bottom:8px; }
+  #bankCash { color:#7a5a00; font-weight:800; margin-bottom:12px; }
   .fund {
-    background:rgba(255,255,255,.06); border:1px solid rgba(130,150,255,.3);
+    background:#fff; border:2px solid #dfe6f2;
     border-radius:14px; padding:10px 12px; margin-bottom:10px; text-align:right;
   }
   .fhead { display:flex; align-items:center; gap:8px; }
   .ficon { font-size:28px; }
-  .fname { font-weight:700; font-size:15px; }
-  .frisk { font-size:11px; }
-  .frisk.low { color:#7dffb0; } .frisk.mid { color:#ffd94a; } .frisk.high { color:#ff8a6a; }
-  .frate { font-size:13px; margin-top:6px; font-weight:700; }
-  .frate.up { color:#7dffb0; } .frate.down { color:#ff8a6a; }
-  .fbal { font-size:12px; color:#c8d2f0; margin-top:2px; }
+  .fname { font-weight:800; font-size:15px; }
+  .frisk { font-size:11px; font-weight:700; }
+  .frisk.low { color:#1a9a3e; } .frisk.mid { color:#c88a00; } .frisk.high { color:#d0402a; }
+  .frate { font-size:13px; margin-top:6px; font-weight:800; }
+  .frate.up { color:#1a9a3e; } .frate.down { color:#d0402a; }
+  .fbal { font-size:12px; color:#4a5a80; margin-top:2px; }
   .fbtns { display:flex; gap:6px; margin-top:8px; }
   .fund button {
-    flex:1; padding:7px 4px; font-size:12.5px; font-weight:700; border:none; border-radius:9px;
-    background:linear-gradient(180deg,#ffd23e,#ff9a1e); color:#3a2000; cursor:pointer;
+    flex:1; padding:8px 4px; font-size:12.5px; font-weight:800; border-radius:10px; cursor:pointer;
+    color:#123a00; background:linear-gradient(180deg,#c2f27e,#7cce42 60%,#67bc35);
+    border:2px solid #4a9422; border-bottom-width:4px;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.5);
   }
-  .fund button[disabled] { opacity:.4; }
-  .fund button:last-child { background:linear-gradient(180deg,#5a8aff,#3050c0); color:#fff; }
+  .fund button:active { border-bottom-width:2px; transform:translateY(2px); }
+  .fund button[disabled] { opacity:.45; }
+  .fund button:last-child { background:linear-gradient(180deg,#7aa8ff,#3f66d8); border-color:#2a4aa8; color:#fff; }
   #bankClose {
-    margin-top:4px; padding:9px 30px; border:none; border-radius:10px;
-    background:linear-gradient(145deg,#3a6aff,#2340b0); color:#fff; font-size:15px; font-weight:700; cursor:pointer;
+    margin-top:4px; padding:10px 32px; border:none; border-radius:12px; cursor:pointer;
+    background:linear-gradient(180deg,#7aa8ff,#3f66d8); border:2px solid #2a4aa8; border-bottom-width:5px;
+    color:#fff; font-size:15px; font-weight:800; font-family:inherit;
+  }
+  #bankClose:active { border-bottom-width:2px; transform:translateY(2px); }
+
+  /* fans pill fill */
+  #fansBar { height:100%; border-radius:8px; background:linear-gradient(90deg,#ff8a6a,#e0402a); transition:width .3s; }
+  #fansPill { color:#a02818; }
+
+  /* bubble name tag */
+  .btag {
+    position:absolute; top:-11px; inset-inline-start:12px;
+    background:linear-gradient(180deg,#c886ff,#9a4ae0); color:#fff;
+    border-radius:10px; padding:1px 10px; font-size:11px; font-weight:800;
+    box-shadow:0 2px 5px rgba(0,0,0,.3);
   }
 
   /* ---- gift popup ---- */
   #giftBox {
     background:linear-gradient(170deg, #f6f9ff, #dfe9ff); color:#1a2440;
-    border-radius:22px; padding:26px 36px; text-align:center; max-width:320px;
+    border-radius:22px; padding:0; text-align:center; max-width:320px; min-width:280px;
+    overflow:hidden;
     box-shadow:0 12px 40px rgba(0,0,0,.6);
     animation:reveal .35s ease;
   }
+  #giftBody { padding:16px 36px 26px; }
   #giftEmoji { font-size:78px; animation:giftShake 1s infinite; display:inline-block; }
   @keyframes giftShake {
     0%,100% { transform:rotate(0) scale(1); }
@@ -402,9 +490,10 @@
     <button class="roundBtn" id="bankBtn" title="בורסת החלל" style="display:none">📈</button>
     <div id="pillGrid">
       <div class="pill" id="money">💰 0</div>
-      <div class="pill" id="robotBadge"></div>
+      <div class="pill" id="fansPill"><span>👥</span><div class="barTrack"><div id="fansBar"></div></div><span id="fansNum">0</span></div>
       <div class="pill" id="income"></div>
       <div class="pill" id="energyWrap"><span>⚡</span><div class="barTrack"><div id="energyBar"></div></div></div>
+      <div class="pill" id="robotBadge"></div>
     </div>
     <button class="roundBtn" id="setBtn" title="הגדרות">⚙️</button>
     <div id="settingsMenu">
@@ -419,7 +508,10 @@
   </div>
 </div>
 
-<div id="sheet"><div id="sheetInner"></div></div>
+<div id="sheet">
+  <div class="popHead"><span id="sheetTitle"></span><button class="popX" id="sheetX">✖</button></div>
+  <div id="sheetInner"></div>
+</div>
 <nav id="navbar">
   <button class="navBtn" data-tab="world"><span class="nIcon">🌍</span><span class="nLbl">כוכב</span><span class="badge" id="bdg-world"></span></button>
   <button class="navBtn" data-tab="shop"><span class="nIcon">⛏️</span><span class="nLbl">שדרוגים</span><span class="badge" id="bdg-shop"></span></button>
@@ -431,10 +523,13 @@
 
 <div class="overlay" id="giftOverlay">
   <div id="giftBox">
-    <div id="giftEmoji">🎁</div>
-    <div id="giftTitle">מתנה מהחלל!</div>
-    <div id="giftPrize"></div>
-    <button id="giftBtn">לאסוף! 🎉</button>
+    <div class="popHead">קיבלת מתנה! 🎁</div>
+    <div id="giftBody">
+      <div id="giftEmoji">🎁</div>
+      <div id="giftTitle">מתנה מהחלל!</div>
+      <div id="giftPrize"></div>
+      <button id="giftBtn">לאסוף! 🎉</button>
+    </div>
   </div>
 </div>
 
@@ -473,11 +568,13 @@
 
 <div class="overlay" id="bankOverlay">
   <div id="bankBox">
-    <h2>📈 בורסת החלל</h2>
-    <div id="bankSub">השקע מטבעות וצפה בהם גדלים בריבית דריבית — או משוך אותם בחזרה מתי שתרצה</div>
-    <div id="bankCash"></div>
-    <div id="fundList"></div>
-    <button id="bankClose">חזרה לכרייה ✖</button>
+    <div class="popHead">📈 בורסת החלל<button class="popX" id="bankX">✖</button></div>
+    <div id="bankBody">
+      <div id="bankSub">השקע מטבעות וצפה בהם גדלים בריבית דריבית — או משוך אותם בחזרה מתי שתרצה</div>
+      <div id="bankCash"></div>
+      <div id="fundList"></div>
+      <button id="bankClose">חזרה לכרייה</button>
+    </div>
   </div>
 </div>
 
@@ -603,6 +700,7 @@ function defaultState() {
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
     bankUnlocked:false, everInvested:false, fundProfitTotal:0, musicOn:true,
     specialty:null, skins:{def:true}, skin:'def',
+    fans:0, fanIdx:0,
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -616,8 +714,24 @@ function stageAt(i) { return STAGES[i].at * scaleFactor(); }
 function lvl(id) { return S.levels[id] || 0; }
 function cost(u) { return Math.ceil(u.base * scaleFactor() * Math.pow(u.growth, lvl(u.id))); }
 function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult; }
-function perClick() { return (1 + lvl('pick') + 25 * lvl('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult; }
-function perSec()   { return (lvl('miner') + 8 * lvl('drone') + 60 * lvl('fleet')) * incomeMult() * S.prestAuto * (S.specialty === 'auto' ? 1.5 : 1) * rush.mult; }
+// every 10 levels an upgrade earns a permanent x1.5 milestone bonus
+function upMult(id) { return Math.pow(1.5, Math.floor(lvl(id) / 10)); }
+function perClick() { return (1 + lvl('pick') * upMult('pick') + 25 * lvl('drill') * upMult('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult; }
+function perSec()   { return (lvl('miner') * upMult('miner') + 8 * lvl('drone') * upMult('drone') + 60 * lvl('fleet') * upMult('fleet')) * incomeMult() * S.prestAuto * (S.specialty === 'auto' ? 1.5 : 1) * rush.mult; }
+// fans — the robot's fame metric
+function fanMilestoneAt(i) { return 100 * Math.pow(4, i); }
+function addFans(n) {
+  S.fans += n;
+  while (S.fanIdx < 15 && S.fans >= fanMilestoneAt(S.fanIdx)) {
+    S.fanIdx++;
+    const bonus = Math.ceil(perSec() * 60 + perClick() * 30);
+    S.money += bonus;
+    banner('👥 ' + fmt(fanMilestoneAt(S.fanIdx - 1)) + ' מעריצים! הרובוט מתפרסם! +' + fmt(bonus) + ' 💰');
+    say('אני כוכב אמיתי! 🌟', 3.5);
+    burstConfetti(W / 2, H * 0.3, 36);
+    sfx('quest'); buzz(25);
+  }
+}
 function robotTier() {
   let t = TIERS[0];
   for (const c of TIERS) if (S.robotXP >= c.lvl) t = c;
@@ -1632,6 +1746,7 @@ document.getElementById('giftBtn').addEventListener('click', () => {
   document.getElementById('giftOverlay').classList.remove('show');
   events.active = null;
   giftData = null;
+  addFans(10);
   burstConfetti(W/2, H*0.35, 45);
   flash = 0.3;
   sfx('quest'); buzz([20, 30, 40]);
@@ -2108,7 +2223,7 @@ let bubbleTimer = null, lastClickAt = 0, idleNext = 25;
 const IDLE_LINES = ['היי, הכוכב לא יכרה את עצמו! ⛏️', 'משעמם לי פה... בוא נלחץ! 👆', 'יש עוד המון אוצרות מתחתיי! 💎', 'אני מוכן לעבודה! 🤖'];
 const CRIT_LINES = ['בום!! 💥', 'מכה אדירה! 🔥', 'ראית את זה?! ⚡'];
 function say(text, dur) {
-  bubbleEl.textContent = text;
+  bubbleEl.innerHTML = '<span class="btag">רובי 🤖</span>' + text;
   bubbleEl.style.display = 'block';
   bubbleEl.style.animation = 'none';
   void bubbleEl.offsetWidth;
@@ -2154,19 +2269,42 @@ document.querySelectorAll('.navBtn').forEach(btn => {
   });
 });
 
+const TAB_TITLES = { world:'🪐 הכוכב שלי', shop:'⛏️ שדרוגים', skins:'🎨 מראה', brain:'🧠 משימות' };
+
 function renderSheet() {
   if (!curTab) return;
+  document.getElementById('sheetTitle').textContent = TAB_TITLES[curTab];
   let html = '';
   if (curTab === 'shop') {
     for (const u of UPGRADES) {
       if (!S.unlocked[u.id]) continue;
+      const L = lvl(u.id), m = upMult(u.id);
       html += `
-        <div class="card cat-${u.cat}" id="card-${u.id}" data-u="${u.id}">
-          <div class="icon">${u.icon}</div>
-          <div class="name">${u.name}</div>
-          <div class="desc">${u.desc}</div>
-          <div class="lvl">רמה ${lvl(u.id)}</div>
-          <div class="cost">💰 ${fmt(cost(u))}</div>
+        <div class="uprow" id="card-${u.id}" data-u="${u.id}">
+          <div class="upHead">${u.icon} ${u.name}</div>
+          <div class="upBody">
+            <div class="upIcon">${u.icon}</div>
+            <div class="upFx"><span class="fxGreen">${u.desc}</span>${m > 1 ? `<br><span class="fxBonus">בונוס מיילסטון: ×${m.toFixed(m % 1 ? 2 : 0)}</span>` : ''}</div>
+            <div class="upBuy">💰 ${fmt(cost(u))}</div>
+          </div>
+          <div class="upFoot">
+            <span class="upLvl">רמה ${L}</span>
+            <div class="upBar"><div class="upFill" style="width:${(L % 10) * 10}%"></div></div>
+            <span class="upNext">עוד ${10 - (L % 10)} לבונוס ×1.5</span>
+          </div>
+        </div>`;
+    }
+    // the next locked upgrade is shown as a goal
+    const nextLocked = UPGRADES.find(u => !S.unlocked[u.id]);
+    if (nextLocked) {
+      html += `
+        <div class="uprow locked">
+          <div class="upHead">???</div>
+          <div class="upBody">
+            <div class="upIcon">🔒</div>
+            <div class="upFx">שדרוג מסתורי — המשיכו לכרות כדי לפתוח!</div>
+            <div class="upReq">נדרש:<br>${fmt(nextLocked.unlock * scaleFactor())} סה"כ</div>
+          </div>
         </div>`;
     }
   } else if (curTab === 'world') {
@@ -2225,7 +2363,7 @@ function renderSheet() {
       </div>
       <div class="infoCard">
         <div class="big">📊 סטטיסטיקות</div>
-        <div>👆 לחיצות: ${fmt(S.clicks)} · 🦾 רמת רובוט: ${S.robotXP}</div>
+        <div>👆 לחיצות: ${fmt(S.clicks)} · 🦾 רמת רובוט: ${S.robotXP} · 👥 מעריצים: ${fmt(S.fans)}</div>
         <div class="sub">💰 סה"כ נכרה: ${fmt(S.totalEarned)} · 🎉 אבני דרך: ${S.milestoneIdx}</div>
       </div>`;
   }
@@ -2233,8 +2371,9 @@ function renderSheet() {
   refreshCards();
 }
 
+document.getElementById('sheetX').addEventListener('click', () => closeSheet());
 sheetInner.addEventListener('pointerdown', e => {
-  const card = e.target.closest('.card');
+  const card = e.target.closest('.card, .uprow');
   if (!card) return;
   e.stopPropagation();
   if (card.dataset.u) {
@@ -2291,11 +2430,13 @@ function refreshCards() {
   for (const u of UPGRADES) {
     const el = document.getElementById('card-' + u.id);
     if (!el) continue;
-    const c = cost(u);
+    const c = cost(u), L = lvl(u.id);
     el.classList.toggle('cant', S.money < c);
     el.classList.toggle('ready', S.money >= c);
-    el.querySelector('.lvl').textContent = 'רמה ' + lvl(u.id);
-    el.querySelector('.cost').textContent = '💰 ' + fmt(c);
+    el.querySelector('.upBuy').textContent = '💰 ' + fmt(c);
+    el.querySelector('.upLvl').textContent = 'רמה ' + L;
+    el.querySelector('.upFill').style.width = ((L % 10) * 10) + '%';
+    el.querySelector('.upNext').textContent = 'עוד ' + (10 - (L % 10)) + ' לבונוס ×1.5';
   }
   document.querySelectorAll('.skinCard').forEach(el => {
     const sk = SKINS.find(s => s.id === el.dataset.skin);
@@ -2353,6 +2494,12 @@ function refreshHud() {
     badgeEl.style.display = 'flex';
     badgeEl.textContent = `🤖 ${S.robotXP} · ${tier.name}`;
   }
+  // fans pill with red progress toward the next fame milestone
+  const fFloor = S.fanIdx === 0 ? 0 : fanMilestoneAt(S.fanIdx - 1);
+  const fNext = fanMilestoneAt(S.fanIdx);
+  document.getElementById('fansNum').textContent = fmt(S.fans);
+  document.getElementById('fansBar').style.width =
+    Math.min(100, Math.max(4, (S.fans - fFloor) / (fNext - fFloor) * 100)) + '%';
   if (S.energyShown) {
     energyWrap.style.display = 'flex';
     energyBar.style.width = Math.max(0, S.energy) + '%';
@@ -2438,6 +2585,7 @@ questEl.addEventListener('pointerdown', e => {
   S.money += q.r;
   S.qDone[S.curQuest] = true;
   S.curQuest = -1;
+  addFans(15);
   sfx('quest');
   buzz(30);
   banner('🎯 משימה הושלמה! +' + fmt(q.r) + ' 💰');
@@ -2520,6 +2668,9 @@ document.getElementById('bankBtn').addEventListener('click', () => {
 document.getElementById('bankClose').addEventListener('click', () => {
   document.getElementById('bankOverlay').classList.remove('show');
 });
+document.getElementById('bankX').addEventListener('click', () => {
+  document.getElementById('bankOverlay').classList.remove('show');
+});
 
 // ---------- money milestones ----------
 function milestoneAt(i) { return 1000 * Math.pow(10, i); }
@@ -2552,7 +2703,7 @@ function checkStage() {
     S.stage++;
     changed = true;
     addFeatures(S.stage);
-    if (STAGES[S.stage].msg) { banner(STAGES[S.stage].msg); say('תראה את הכוכב שלנו! 😍', 3.5); flash = 0.35; sfx('tier'); }
+    if (STAGES[S.stage].msg) { banner(STAGES[S.stage].msg); say('תראה את הכוכב שלנו! 😍', 3.5); addFans(S.stage * 50); flash = 0.35; sfx('tier'); }
     if (S.stage >= 5) S.everLiving = true;
   }
   if (changed) rebuildUnits();
@@ -2641,6 +2792,7 @@ function doClick(cx_, cy_) {
         burstSparks(m.x, m.y, 14, '#ffcf5a');
         burstCoins(m.x, m.y, 5);
         meteorDrops.splice(i, 1);
+        addFans(5);
         sfx('coin'); buzz(18);
         popMoney(); refreshHud(); refreshCards(); updateQuest();
         return;
@@ -2658,6 +2810,7 @@ function doClick(cx_, cy_) {
       const back = hacker.stolen * 0.6;
       S.money += back;
       hacker.on = false; events.active = null;
+      addFans(20);
       banner('🎉 גירשת את ההאקר! החזרת ' + fmt(back) + ' 💰');
       burstConfetti(hacker.x, hacker.y - 20, 30);
       sfx('quest'); buzz([20, 25, 35]);
@@ -2703,7 +2856,8 @@ function doClick(cx_, cy_) {
   // the robot works faster when you click
   work.boost = Math.min(work.boost + 0.35, 3);
   robot.happy = 1.2;
-  if (S.clicks % 5 === 0) robot.jumpT = Math.max(robot.jumpT, 0.6);
+  if (S.clicks % 5 === 0) { robot.jumpT = Math.max(robot.jumpT, 0.6); addFans(1); }
+  if (isCrit) addFans(3);
 
   hitEffects(gain, true, cx_, cy_, isCrit);
   if (mult < 1) {
