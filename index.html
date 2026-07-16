@@ -404,6 +404,19 @@
   #fansBar { height:100%; border-radius:8px; background:linear-gradient(90deg,#ff8a6a,#e0402a); transition:width .3s; }
   #fansPill { color:#a02818; }
 
+  /* AI autopilot toggle */
+  #autoBtn {
+    margin-top:8px; padding:9px 18px; border-radius:12px; cursor:pointer;
+    font-family:inherit; font-size:13.5px; font-weight:800;
+    background:#e4e8f0; color:#5a6a90; border:2px solid #c8d0e0; border-bottom-width:4px;
+  }
+  #autoBtn.on {
+    background:linear-gradient(180deg,#c2f27e,#7cce42 60%,#67bc35);
+    color:#123a00; border-color:#4a9422;
+    animation:pulseGlow 1.6s infinite alternate;
+  }
+  #autoBtn:active { border-bottom-width:2px; transform:translateY(2px); }
+
   /* bubble name tag */
   .btag {
     position:absolute; top:-11px; inset-inline-start:12px;
@@ -647,6 +660,7 @@ const QUESTS = [
   { icon:'🦾', text:'שדרג את הרובוט לרמה 100',   p:() => S.robotXP,            g:100, r:50000000 },
   { icon:'📈', text:'השקע בבורסת החלל',          p:() => S.everInvested ? 1:0, g:1,   r:2000 },
   { icon:'🏦', text:'צבור 5,000 רווח מהשקעות',   p:() => Math.floor(S.fundProfitTotal), g:5000, r:25000 },
+  { icon:'🧠', text:'הפעל את טייס ה-AI',          p:() => S.autopilotUsed ? 1:0, g:1,   r:100000 },
 ];
 
 // ---------- space stock exchange funds ----------
@@ -700,7 +714,7 @@ function defaultState() {
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
     bankUnlocked:false, everInvested:false, fundProfitTotal:0, musicOn:true,
     specialty:null, skins:{def:true}, skin:'def',
-    fans:0, fanIdx:0,
+    fans:0, fanIdx:0, autopilot:false, autopilotUsed:false,
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -1696,6 +1710,80 @@ function updateUnits(dt) {
   }
 }
 
+// ---------- Robi's AI brain: ROI advisor + autopilot ----------
+let cpsEst = 0; // rolling clicks-per-second estimate
+let advTick = 0, advSayIn = 40, lastAdvice = '', autoTick = 0;
+function clickRate() { return Math.min(5, Math.max(0.2, cpsEst / 15)); }
+function gainDelta(u) {
+  // simulate one more level and measure real income difference
+  const cur = perClick() * clickRate() + perSec();
+  S.levels[u.id] = lvl(u.id) + 1;
+  const next = perClick() * clickRate() + perSec();
+  S.levels[u.id]--;
+  return next - cur;
+}
+function bestUpgrade() {
+  let best = null;
+  for (const u of UPGRADES) {
+    if (!S.unlocked[u.id]) continue;
+    const d = gainDelta(u);
+    if (d <= 0) continue;
+    const payback = cost(u) / d;
+    if (!best || payback < best.payback) best = { u, payback };
+  }
+  return best;
+}
+function aiAdvice() {
+  if (S.bankUnlocked) {
+    const tr = FUNDS[2].rate();
+    if (tr > 0.35 && S.money > 500 * scaleFactor()) {
+      return { text:'📈 מניית הטורבו מזנקת (' + Math.round(tr * 100) + '% לדקה)! זה הזמן להשקיע!', kind:'market' };
+    }
+    if (S.funds.turbo.bal > 0 && tr < -0.12) {
+      return { text:'📉 הטורבו צונח (' + Math.round(tr * 100) + '%)! שקול למשוך לפני שיירד עוד', kind:'market' };
+    }
+  }
+  const best = bestUpgrade();
+  if (best && S.money >= cost(best.u)) {
+    return { text:'🧠 הכי משתלם עכשיו: ' + best.u.icon + ' ' + best.u.name + ' — מחזיר את עצמו תוך ' + Math.ceil(best.payback) + ' שנ׳', kind:'buy' };
+  }
+  if (best) {
+    return { text:'🎯 היעד הבא: ' + best.u.icon + ' ' + best.u.name + ' (' + fmt(cost(best.u)) + ') — ההחזר הכי מהיר', kind:'goal' };
+  }
+  return { text:'⛏️ תמשיך ללחוץ — אתה בדרך הנכונה!', kind:'idle' };
+}
+function updateAI(dt) {
+  cpsEst = Math.max(0, cpsEst - cpsEst * dt / 15);
+  // live advice in the brain tab
+  advTick += dt;
+  if (advTick > 2) {
+    advTick = 0;
+    const el = document.getElementById('aiAdvice');
+    if (el && curTab === 'brain') el.textContent = aiAdvice().text;
+  }
+  // proactive tips in the speech bubble
+  advSayIn -= dt;
+  if (advSayIn <= 0 && mode === 'play' && !events.active && !challenge.on) {
+    advSayIn = 55 + Math.random() * 25;
+    const a = aiAdvice();
+    if (a.text !== lastAdvice && (a.kind === 'buy' || a.kind === 'market')) {
+      lastAdvice = a.text;
+      say(a.text, 4.5, 'רובי AI 🧠');
+    }
+  }
+  // autopilot: buys the best-ROI upgrade automatically
+  autoTick += dt;
+  if (S.autopilot && autoTick > 4 && mode === 'play') {
+    autoTick = 0;
+    const best = bestUpgrade();
+    if (best && S.money >= cost(best.u)) {
+      buy(best.u);
+      const p0 = surfacePoint(0);
+      addFloat(p0.x, p0.y - 130, '🧠 ה-AI קנה: ' + best.u.name, '#b98aff', 15);
+    }
+  }
+}
+
 // ---------- random events: meteor shower, robot hacker, rush challenge ----------
 const events = { active:null, t:0, next:100 };
 let firstEventDone = false;
@@ -2222,8 +2310,8 @@ const bubbleEl = document.getElementById('bubble');
 let bubbleTimer = null, lastClickAt = 0, idleNext = 25;
 const IDLE_LINES = ['היי, הכוכב לא יכרה את עצמו! ⛏️', 'משעמם לי פה... בוא נלחץ! 👆', 'יש עוד המון אוצרות מתחתיי! 💎', 'אני מוכן לעבודה! 🤖'];
 const CRIT_LINES = ['בום!! 💥', 'מכה אדירה! 🔥', 'ראית את זה?! ⚡'];
-function say(text, dur) {
-  bubbleEl.innerHTML = '<span class="btag">רובי 🤖</span>' + text;
+function say(text, dur, tag) {
+  bubbleEl.innerHTML = '<span class="btag">' + (tag || 'רובי 🤖') + '</span>' + text;
   bubbleEl.style.display = 'block';
   bubbleEl.style.animation = 'none';
   void bubbleEl.offsetWidth;
@@ -2353,6 +2441,14 @@ function renderSheet() {
     const done = Object.keys(S.qDone).length;
     html += `
       <div class="infoCard">
+        <div class="big">🧠 המוח החכם של רובי</div>
+        <div id="aiAdvice" style="font-weight:800; margin:5px 0; color:#5a2a8a">${aiAdvice().text}</div>
+        <div class="sub">ה-AI מחשב את ההחזר המהיר ביותר לכל מטבע ועוקב אחרי השוק בזמן אמת</div>
+        ${S.robotXP >= 40
+          ? `<button id="autoBtn" class="${S.autopilot ? 'on' : ''}">${S.autopilot ? '🟢 טייס אוטומטי פעיל — ה-AI קונה בשבילך' : '⚪ הפעל טייס אוטומטי'}</button>`
+          : `<div class="sub" style="margin-top:6px">🔒 טייס אוטומטי ייפתח ברמת רובוט 40 (עכשיו: ${S.robotXP})</div>`}
+      </div>
+      <div class="infoCard">
         <div class="big">🎯 משימות</div>
         <div>הושלמו ${done} מתוך ${QUESTS.length}</div>
         <div class="sub">המשימה הפעילה מוצגת בפינה למעלה — לחץ עליה לאיסוף הפרס</div>
@@ -2373,6 +2469,18 @@ function renderSheet() {
 
 document.getElementById('sheetX').addEventListener('click', () => closeSheet());
 sheetInner.addEventListener('pointerdown', e => {
+  const ab = e.target.closest('#autoBtn');
+  if (ab) {
+    ensureAudio();
+    S.autopilot = !S.autopilot;
+    if (S.autopilot) {
+      S.autopilotUsed = true;
+      say('אני על זה! אקנה את מה שהכי משתלם 🧠', 3.5, 'רובי AI 🧠');
+    }
+    sfx('buy'); buzz(12);
+    renderSheet(); updateQuest(); save();
+    return;
+  }
   const card = e.target.closest('.card, .uprow');
   if (!card) return;
   e.stopPropagation();
@@ -2774,6 +2882,7 @@ function doClick(cx_, cy_) {
   if (mode !== 'play') return;
   ensureAudio();
   lastClickAt = now;
+  cpsEst += 1;
 
   // golden comet catch (generous tap radius for kids)
   if (comet && cx_ !== undefined && Math.hypot(cx_ - comet.x, cy_ - comet.y) < 52) {
@@ -3019,6 +3128,9 @@ function update(dt) {
 
   // random events
   updateEvents(dt);
+
+  // Robi's AI brain
+  updateAI(dt);
 
   // bored robot calls the player back
   if (mode === 'play' && tutorialDone && now - lastClickAt > 45 && now > idleNext) {
