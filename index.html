@@ -426,14 +426,14 @@
   }
 
   /* ---- gift popup ---- */
-  #giftBox {
+  #giftBox, #dailyBox {
     background:linear-gradient(170deg, #f6f9ff, #dfe9ff); color:#1a2440;
     border-radius:22px; padding:0; text-align:center; max-width:320px; min-width:280px;
     overflow:hidden;
     box-shadow:0 12px 40px rgba(0,0,0,.6);
     animation:reveal .35s ease;
   }
-  #giftBody { padding:16px 36px 26px; }
+  #giftBody, #dailyBody { padding:16px 36px 26px; }
   #giftEmoji { font-size:78px; animation:giftShake 1s infinite; display:inline-block; }
   @keyframes giftShake {
     0%,100% { transform:rotate(0) scale(1); }
@@ -443,14 +443,14 @@
   }
   #giftTitle { font-size:22px; font-weight:800; margin-top:6px; }
   #giftPrize { font-size:16px; font-weight:700; color:#7a5a00; margin-top:8px; }
-  #giftBtn {
+  #giftBtn, #dailyBtn {
     margin-top:16px; padding:13px 44px; font-size:20px; font-weight:800;
     border:none; border-radius:16px; cursor:pointer; color:#fff; font-family:inherit;
     background:linear-gradient(180deg, #46d977, #23a34e);
     box-shadow:0 5px 0 #187a38, 0 8px 18px rgba(0,0,0,.35);
     animation:pulseGlow 1.2s infinite alternate;
   }
-  #giftBtn:active { transform:translateY(3px); box-shadow:0 2px 0 #187a38; }
+  #giftBtn:active, #dailyBtn:active { transform:translateY(3px); box-shadow:0 2px 0 #187a38; }
 
   /* ---- robot speech bubble ---- */
   #bubble {
@@ -575,6 +575,18 @@
       <div style="font-size:52px">🤖</div>
       <div class="pname">טכנולוגיית אוטומציה</div>
       <div class="ptag">+50% להכנסה אוטומטית</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dailyOverlay">
+  <div id="dailyBox">
+    <div class="popHead">בונוס יומי 📅</div>
+    <div id="dailyBody">
+      <div id="dailyEmoji" style="font-size:64px">🗓️</div>
+      <div id="dailyTitle" style="font-size:20px;font-weight:800;margin-top:6px"></div>
+      <div id="dailyPrize" style="font-size:15px;font-weight:700;color:#7a5a00;margin-top:8px"></div>
+      <button id="dailyBtn">לאסוף! 🎉</button>
     </div>
   </div>
 </div>
@@ -715,6 +727,7 @@ function defaultState() {
     bankUnlocked:false, everInvested:false, fundProfitTotal:0, musicOn:true,
     specialty:null, skins:{def:true}, skin:'def',
     fans:0, fanIdx:0, autopilot:false, autopilotUsed:false,
+    pcClaimed:0, dailyStreak:0, lastDaily:'',
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -727,7 +740,11 @@ function stageAt(i) { return STAGES[i].at * scaleFactor(); }
 
 function lvl(id) { return S.levels[id] || 0; }
 function cost(u) { return Math.ceil(u.base * scaleFactor() * Math.pow(u.growth, lvl(u.id))); }
-function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult; }
+// prestige crystals: earned by lifetime mining, √(lifetime/100K), each = +2% forever
+function pcEarnedTotal() { return Math.floor(Math.sqrt(S.totalEarned / 100000)); }
+function pcPending() { return Math.max(0, pcEarnedTotal() - S.pcClaimed); }
+function pcMult() { return 1 + 0.02 * S.pcClaimed; }
+function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult * pcMult(); }
 // every 10 levels an upgrade earns a permanent x1.5 milestone bonus
 function upMult(id) { return Math.pow(1.5, Math.floor(lvl(id) / 10)); }
 function perClick() { return (1 + lvl('pick') * upMult('pick') + 25 * lvl('drill') * upMult('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult; }
@@ -959,6 +976,9 @@ function addImpact(x, y, big) {
 // ---------- robot ----------
 const robot = { hitT:0, jumpT:0, blink:0, happy:0, sitting:false, spinT:0 };
 const work = { t:0, boost:0 };
+// combo: consecutive taps within 1.5s each add +1% to click income (cap +100%)
+const combo = { n:0, t:0 };
+function comboMult() { return 1 + Math.min(combo.n, 100) * 0.01; }
 let robotClickStreak = 0, lastRobotClick = 0, lastSpin = -99;
 
 // ---------- golden comet (tap it for a bonus!) ----------
@@ -2100,6 +2120,12 @@ function landOnPlanet() {
   const p = cine.targetPlanet;
   S.prestClick *= p.bonus.click;
   S.prestAuto  *= p.bonus.auto;
+  // claim prestige crystals: √(lifetime/100K), each grants +2% forever
+  const pc = pcPending();
+  if (pc > 0) {
+    S.pcClaimed += pc;
+    banner('💠 +' + pc + ' קריסטלי יוקרה! (+' + (S.pcClaimed * 2) + '% לכל ההכנסות, לנצח)');
+  }
   S.visits++;
   S.planetColors = p.colors;
   S.planetName = p.name;
@@ -2401,6 +2427,7 @@ function renderSheet() {
         <div class="big">🪐 ${S.planetName}</div>
         <div>העידן הנוכחי: ${STAGES[S.stage].name}</div>
         <div class="sub">כוכבים שנכבשו: ${S.visits + 1} · 💎 קריסטל: ${S.cracked ? 'פעיל — הכנסות כפולות!' : 'טרם נחשף'}</div>
+        <div class="sub">💠 קריסטלי יוקרה: ${S.pcClaimed} (+${S.pcClaimed * 2}% לנצח) · במסע הבא: +${pcPending()}</div>
       </div>`;
     if (S.bankUnlocked) {
       html += `
@@ -2415,7 +2442,7 @@ function renderSheet() {
         <div class="card" id="travelBtn" style="display:block">
           <div class="icon">🚀</div>
           <div class="name">מסע לכוכב חדש</div>
-          <div class="desc">השדרוגים מתאפסים, אבל תקבל בונוס הכנסה קבוע לתמיד!</div>
+          <div class="desc">השדרוגים מתאפסים, אבל תקבל בונוס קבוע + ${pcPending()} 💠 קריסטלי יוקרה!</div>
           <div class="cost">המריאו! ✨</div>
         </div>`;
     } else {
@@ -2957,10 +2984,36 @@ function doClick(cx_, cy_) {
   }
   robot.sitting = S.energy < 5;
 
+  // combo: keep tapping to build up to +100%
+  combo.n = (now - combo.t < 1.5) ? combo.n + 1 : 1;
+  combo.t = now;
+  if (combo.n === 50) say('קומבו מטורף!! 🔥', 2);
+
   // ~1 in 10 clicks lands a critical hit worth x3
   const isCrit = Math.random() < 0.1;
-  const gain = perClick() * mult * (isCrit ? 3 : 1);
+  const gain = perClick() * mult * comboMult() * (isCrit ? 3 : 1);
   earn(gain);
+
+  // lucky drop: 5% of taps trigger a surprise
+  if (Math.random() < 0.05) {
+    const r = Math.random();
+    const ip2 = impactPoint();
+    if (r < 0.6) {
+      const bonus = gain * 2;
+      earn(bonus);
+      addFloat(ip2.x, ip2.y - 95, '🍀 מזל! +' + fmt(bonus), '#6ae06a', 20, -2);
+    } else if (r < 0.9) {
+      S.energy = 100;
+      addFloat(ip2.x, ip2.y - 95, '🍀 אנרגיה מלאה!', '#6ae06a', 18, -2);
+    } else {
+      const treasure = Math.ceil(perSec() * 300 + perClick() * 50);
+      earn(treasure);
+      addFloat(ip2.x, ip2.y - 95, '🍀 אוצר! +' + fmt(treasure), '#6ae06a', 24, -2.5);
+      burstCoins(ip2.x, ip2.y, 8);
+      sfx('quest');
+    }
+    burstSparks(ip2.x, ip2.y - 60, 8, '#6ae06a');
+  }
 
   // the robot works faster when you click
   work.boost = Math.min(work.boost + 0.35, 3);
@@ -3096,6 +3149,9 @@ function update(dt) {
   const regen = 6 + lvl('reactor') * 2;
   S.energy = Math.min(100, S.energy + regen * dt);
   if (S.energy > 15) robot.sitting = false;
+
+  // combo decay
+  if (combo.n > 0 && now - combo.t > 1.5) combo.n = 0;
 
   // robot anim timers
   if (robot.hitT > 0) robot.hitT = Math.max(0, robot.hitT - dt * 6);
@@ -3330,6 +3386,18 @@ function draw() {
     ctx.beginPath(); ctx.arc(rp.x, rp.y - 55, 160, 0, Math.PI*2); ctx.fill();
     drawRobot(now);
     drawEventActors(now);
+    // combo counter above the robot
+    if (combo.n >= 5 && now - combo.t < 1.5) {
+      const p = surfacePoint(0);
+      const cSize = 16 + Math.min(combo.n, 100) * 0.12;
+      const col = combo.n >= 50 ? '#ff5a3a' : combo.n >= 20 ? '#ff9a2e' : '#ffd94a';
+      ctx.font = `bold ${cSize}px Fredoka, Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = col;
+      ctx.shadowColor = col; ctx.shadowBlur = 12;
+      ctx.fillText('🔥 קומבו ×' + combo.n + ' (+' + Math.min(combo.n, 100) + '%)', p.x, p.y - 195);
+      ctx.shadowBlur = 0;
+    }
     // tutorial hint
     if (!tutorialDone) {
       if (S.clicks >= 5) tutorialDone = true;
@@ -3482,6 +3550,47 @@ document.getElementById('resetNo').addEventListener('click', () => {
 });
 document.getElementById('offlineOk').addEventListener('click', () => {
   document.getElementById('offlineOverlay').classList.remove('show');
+  showDailyIfPending();
+});
+
+// ---------- daily login reward (streak-based) ----------
+let pendingDaily = null;
+const DAILY_MINUTES = [30, 45, 60, 90, 120, 180, 240];
+function checkDaily(isNewPlayer) {
+  if (isNewPlayer) { S.lastDaily = new Date().toDateString(); return; }
+  const today = new Date().toDateString();
+  if (S.lastDaily === today) return;
+  const yest = new Date(Date.now() - 86400000).toDateString();
+  S.dailyStreak = (S.lastDaily === yest) ? (S.dailyStreak || 0) + 1 : 1;
+  S.lastDaily = today;
+  const mins = DAILY_MINUTES[Math.min(S.dailyStreak - 1, DAILY_MINUTES.length - 1)];
+  let amt = Math.ceil(Math.max(200 * scaleFactor(), perSec() * 60 * mins));
+  const chest = S.dailyStreak % 7 === 0;
+  if (chest) amt *= 2;
+  pendingDaily = { amt, chest };
+  document.getElementById('dailyEmoji').textContent = chest ? '🎁' : '🗓️';
+  document.getElementById('dailyTitle').textContent = 'יום ' + S.dailyStreak + ' ברצף!';
+  document.getElementById('dailyPrize').textContent =
+    (chest ? '🎉 תיבת שבוע — כפול! ' : '') + '💰 +' + fmt(amt) + ' (שווה ' + mins + ' דקות הכנסה)';
+  save();
+}
+function showDailyIfPending() {
+  if (pendingDaily) document.getElementById('dailyOverlay').classList.add('show');
+}
+document.getElementById('dailyBtn').addEventListener('click', () => {
+  ensureAudio();
+  if (pendingDaily) {
+    earn(pendingDaily.amt);
+    addFans(5);
+  }
+  pendingDaily = null;
+  document.getElementById('dailyOverlay').classList.remove('show');
+  burstConfetti(W/2, H*0.35, 40);
+  flash = 0.3;
+  sfx('quest'); buzz([20, 30, 40]);
+  say('יום חדש, מכרה חדש! ⛏️', 3);
+  popMoney(); refreshHud(); refreshCards(); updateQuest();
+  save();
 });
 
 // ---------- boot ----------
@@ -3491,11 +3600,11 @@ if (loaded) {
   rebuildFeatures();
   document.getElementById('muteBtn').textContent = S.muted ? '🔇' : '🔊';
   document.getElementById('musicBtn').style.opacity = S.musicOn ? '1' : '.45';
-  // offline earnings
+  // offline earnings: 60% efficiency, up to 4 hours
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
   const ps = perSec();
   if (away > 60 && ps > 0) {
-    const gain = ps * Math.min(away, 7200) * 0.5;
+    const gain = ps * Math.min(away, 14400) * 0.6;
     S.money += gain; S.totalEarned += gain; S.earnedPlanet += gain;
     document.getElementById('offlineAmount').textContent = '💰 +' + fmt(gain);
     document.getElementById('offlineOverlay').classList.add('show');
@@ -3507,6 +3616,8 @@ if (loaded) {
   if (S.clicks > 5) tutorialDone = true;
 }
 if (S.bankUnlocked) document.getElementById('bankBtn').style.display = '';
+checkDaily(!loaded);
+if (!document.getElementById('offlineOverlay').classList.contains('show')) showDailyIfPending();
 rebuildDecors();
 rebuildUnits();
 renderPanel();
