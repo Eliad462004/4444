@@ -404,6 +404,34 @@
   #fansBar { height:100%; border-radius:8px; background:linear-gradient(90deg,#ff8a6a,#e0402a); transition:width .3s; }
   #fansPill { color:#a02818; }
 
+  /* skill tree rows */
+  .skillRow {
+    display:flex; align-items:center; gap:8px; padding:6px 2px;
+    border-bottom:1px solid #e8ecf4; text-align:right;
+  }
+  .skillRow:last-of-type { border-bottom:none; }
+  .skIcon { font-size:20px; flex-shrink:0; }
+  .skName { flex:1; font-size:12.5px; font-weight:800; line-height:1.25; }
+  .skFx { font-weight:600; color:#5a6a90; font-size:10.5px; }
+  .skPips { color:#7cce42; font-size:12px; letter-spacing:1.5px; flex-shrink:0; }
+  .skBuy {
+    flex-shrink:0; border:2px solid #4a9422; border-bottom-width:4px; border-radius:10px;
+    background:linear-gradient(180deg,#c2f27e,#7cce42); font-weight:800; font-family:inherit;
+    padding:5px 10px; cursor:pointer; color:#123a00; font-size:12px;
+  }
+  .skBuy:active { border-bottom-width:2px; transform:translateY(1px); }
+  .skBuy[disabled] { opacity:.45; }
+
+  /* artifact collection grid */
+  .artGrid { display:grid; grid-template-columns:repeat(6, 1fr); gap:6px; margin:8px 0 4px; }
+  .artCell {
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    font-size:22px; background:#f2f5fa; border:2px solid #dfe6f2; border-radius:10px;
+  }
+  .artCell.unk { opacity:.4; filter:grayscale(1); }
+  .artCell.r2 { border-color:#7aa8ff; background:#eaf1ff; }
+  .artCell.r3 { border-color:#ffd23e; background:#fff6da; box-shadow:0 0 8px rgba(255,210,62,.5); }
+
   /* AI autopilot toggle */
   #autoBtn {
     margin-top:8px; padding:9px 18px; border-radius:12px; cursor:pointer;
@@ -679,7 +707,7 @@ const QUESTS = [
 const BANK_UNLOCK_AT = 3000;
 const FUNDS = [
   { id:'safe',  icon:'🏦', name:'קופת גמל גלקטית',    risk:'סיכון נמוך',  riskCls:'low',
-    rate:() => 0.05 },
+    rate:() => 0.05 + 0.005 * sk('invest') },
   { id:'index', icon:'📊', name:'מדד הכוכבים 500',    risk:'סיכון בינוני', riskCls:'mid',
     rate:() => 0.07 + 0.05*Math.sin(now*0.07) + 0.03*Math.sin(now*0.023 + 2) + eventMarketShift() * 0.5 },
   { id:'turbo', icon:'🚀', name:'מניית טורבו-קריסטל', risk:'סיכון גבוה',  riskCls:'high',
@@ -701,6 +729,62 @@ const SKINS = [
   { id:'emerald', name:'אזמרגד',       cost:500000,  body:'#5ade8a', accent:'#1a7a4a' },
   { id:'stealth', name:'סטלת׳ שחור',  cost:5000000, body:'#5a5a6e', accent:'#16161e' },
 ];
+
+// ---------- skill tree (Layer 5) ----------
+const SKILLS = [
+  { id:'mine',    icon:'⛏️', name:'כוח כרייה',      fx:'+10% ללחיצה לרמה' },
+  { id:'auto',    icon:'🤖', name:'יעילות רובוטים', fx:'+10% אוטומטי לרמה' },
+  { id:'crit',    icon:'💥', name:'עין קריטית',     fx:'+2% סיכוי קריט לרמה' },
+  { id:'luck',    icon:'🍀', name:'מזל כוכבים',     fx:'+1% סיכוי מזל לרמה' },
+  { id:'offline', icon:'🌙', name:'משמרת לילה',     fx:'+8% הכנסה אופליין לרמה' },
+  { id:'energy',  icon:'⚡', name:'סוללת ענק',      fx:'+1 התחדשות אנרגיה לרמה' },
+  { id:'combo',   icon:'🔥', name:'אומן הקומבו',    fx:'+0.15 שנ׳ לחלון הקומבו לרמה' },
+  { id:'invest',  icon:'📈', name:'יועץ פיננסי',    fx:'+0.5% לקופת הגמל לרמה' },
+];
+function sk(id) { return S.skills[id] || 0; }
+
+// ---------- artifact collection (Layer 7) ----------
+const ARTIFACTS = [
+  { id:'bone',   icon:'🦴', name:'מאובן חייזרי',  r:1 },
+  { id:'geo',    icon:'🪨', name:'גיאודה נוצצת',  r:1 },
+  { id:'mag',    icon:'🧲', name:'מגנט עתיק',     r:1 },
+  { id:'bolt',   icon:'🔩', name:'בורג זהב',      r:1 },
+  { id:'ice',    icon:'🧊', name:'קרח נצחי',      r:1 },
+  { id:'shroom', icon:'🍄', name:'פטריית מאדים',  r:1 },
+  { id:'statue', icon:'🗿', name:'פסל קדום',      r:2 },
+  { id:'chip',   icon:'🛸', name:'שבב חייזרי',    r:2 },
+  { id:'lava',   icon:'🌋', name:'לב געשי',       r:2 },
+  { id:'void',   icon:'🕳️', name:'אבן חור שחור', r:2 },
+  { id:'crown',  icon:'👑', name:'כתר הגלקסיה',   r:3 },
+  { id:'core',   icon:'🌟', name:'גרעין כוכב',    r:3 },
+];
+function artBonusOf(a) { return a.r === 3 ? 0.08 : a.r === 2 ? 0.04 : 0.02; }
+function collMult() {
+  let b = 0, all = true;
+  for (const a of ARTIFACTS) {
+    if (S.artifacts[a.id]) b += artBonusOf(a);
+    else all = false;
+  }
+  if (all) b += 0.25; // full-set legendary bonus
+  return 1 + b;
+}
+function dropArtifact(prob) {
+  if (Math.random() >= prob) return;
+  const pool = ARTIFACTS.filter(a => !S.artifacts[a.id]);
+  if (!pool.length) return;
+  const weights = pool.map(a => a.r === 3 ? 1 : a.r === 2 ? 3 : 6);
+  let t = weights.reduce((s, w) => s + w, 0) * Math.random();
+  let pick = pool[0];
+  for (let i = 0; i < pool.length; i++) { t -= weights[i]; if (t <= 0) { pick = pool[i]; break; } }
+  S.artifacts[pick.id] = true;
+  const rar = pick.r === 3 ? 'אגדי!!' : pick.r === 2 ? 'נדיר!' : 'לאוסף!';
+  banner('🏺 ' + rar + ' ' + pick.icon + ' ' + pick.name + ' (+' + Math.round(artBonusOf(pick) * 100) + '% לנצח)');
+  say('מצאתי משהו מיוחד! ' + pick.icon, 3.5);
+  burstConfetti(W / 2, H * 0.35, 30);
+  addFans(10);
+  sfx('crystal'); buzz([20, 25, 35]);
+  refreshHud();
+}
 
 const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
 const DEST_PLANETS = [
@@ -728,6 +812,7 @@ function defaultState() {
     specialty:null, skins:{def:true}, skin:'def',
     fans:0, fanIdx:0, autopilot:false, autopilotUsed:false,
     pcClaimed:0, dailyStreak:0, lastDaily:'',
+    sp:0, skills:{}, artifacts:{},
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -744,11 +829,11 @@ function cost(u) { return Math.ceil(u.base * scaleFactor() * Math.pow(u.growth, 
 function pcEarnedTotal() { return Math.floor(Math.sqrt(S.totalEarned / 100000)); }
 function pcPending() { return Math.max(0, pcEarnedTotal() - S.pcClaimed); }
 function pcMult() { return 1 + 0.02 * S.pcClaimed; }
-function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult * pcMult(); }
+function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult * pcMult() * collMult(); }
 // every 10 levels an upgrade earns a permanent x1.5 milestone bonus
 function upMult(id) { return Math.pow(1.5, Math.floor(lvl(id) / 10)); }
-function perClick() { return (1 + lvl('pick') * upMult('pick') + 25 * lvl('drill') * upMult('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult; }
-function perSec()   { return (lvl('miner') * upMult('miner') + 8 * lvl('drone') * upMult('drone') + 60 * lvl('fleet') * upMult('fleet')) * incomeMult() * S.prestAuto * (S.specialty === 'auto' ? 1.5 : 1) * rush.mult; }
+function perClick() { return (1 + lvl('pick') * upMult('pick') + 25 * lvl('drill') * upMult('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult * (1 + 0.1 * sk('mine')); }
+function perSec()   { return (lvl('miner') * upMult('miner') + 8 * lvl('drone') * upMult('drone') + 60 * lvl('fleet') * upMult('fleet')) * incomeMult() * S.prestAuto * (S.specialty === 'auto' ? 1.5 : 1) * rush.mult * (1 + 0.1 * sk('auto')); }
 // fans — the robot's fame metric
 function fanMilestoneAt(i) { return 100 * Math.pow(4, i); }
 function addFans(n) {
@@ -757,7 +842,8 @@ function addFans(n) {
     S.fanIdx++;
     const bonus = Math.ceil(perSec() * 60 + perClick() * 30);
     S.money += bonus;
-    banner('👥 ' + fmt(fanMilestoneAt(S.fanIdx - 1)) + ' מעריצים! הרובוט מתפרסם! +' + fmt(bonus) + ' 💰');
+    S.sp += 1;
+    banner('👥 ' + fmt(fanMilestoneAt(S.fanIdx - 1)) + ' מעריצים! +' + fmt(bonus) + ' 💰 · +1 🧬');
     say('אני כוכב אמיתי! 🌟', 3.5);
     burstConfetti(W / 2, H * 0.3, 36);
     sfx('quest'); buzz(25);
@@ -976,9 +1062,10 @@ function addImpact(x, y, big) {
 // ---------- robot ----------
 const robot = { hitT:0, jumpT:0, blink:0, happy:0, sitting:false, spinT:0 };
 const work = { t:0, boost:0 };
-// combo: consecutive taps within 1.5s each add +1% to click income (cap +100%)
+// combo: consecutive taps within the window each add +1% to click income (cap +100%)
 const combo = { n:0, t:0 };
 function comboMult() { return 1 + Math.min(combo.n, 100) * 0.01; }
+function comboWin() { return 1.5 + 0.15 * sk('combo'); }
 let robotClickStreak = 0, lastRobotClick = 0, lastSpin = -99;
 
 // ---------- golden comet (tap it for a bonus!) ----------
@@ -1855,6 +1942,7 @@ document.getElementById('giftBtn').addEventListener('click', () => {
   events.active = null;
   giftData = null;
   addFans(10);
+  dropArtifact(0.15);
   burstConfetti(W/2, H*0.35, 45);
   flash = 0.3;
   sfx('quest'); buzz([20, 30, 40]);
@@ -2124,8 +2212,10 @@ function landOnPlanet() {
   const pc = pcPending();
   if (pc > 0) {
     S.pcClaimed += pc;
-    banner('💠 +' + pc + ' קריסטלי יוקרה! (+' + (S.pcClaimed * 2) + '% לכל ההכנסות, לנצח)');
+    banner('💠 +' + pc + ' קריסטלי יוקרה! (+' + (S.pcClaimed * 2) + '% לנצח) · +3 🧬');
   }
+  S.sp += 3;
+  dropArtifact(1);
   S.visits++;
   S.planetColors = p.colors;
   S.planetName = p.name;
@@ -2349,7 +2439,16 @@ function say(text, dur, tag) {
 function fmt(n) {
   if (n < 1000) return Math.floor(n).toString();
   const units_ = [['T',1e12],['B',1e9],['M',1e6],['K',1e3]];
-  for (const [u, v] of units_) if (n >= v) return (n/v).toFixed(n/v >= 100 ? 0 : 1) + u;
+  for (let i = 0; i < units_.length; i++) {
+    const [u, v] = units_[i];
+    if (n >= v) {
+      const x = n / v;
+      let s = x >= 100 ? x.toFixed(0) : x.toFixed(1);
+      // rounding can push 999.99K to "1000K" — bump to the next unit instead
+      if (parseFloat(s) >= 1000 && i > 0) return (x / 1000).toFixed(1) + units_[i - 1][0];
+      return s + u;
+    }
+  }
   return Math.floor(n).toString();
 }
 
@@ -2476,6 +2575,26 @@ function renderSheet() {
           : `<div class="sub" style="margin-top:6px">🔒 טייס אוטומטי ייפתח ברמת רובוט 40 (עכשיו: ${S.robotXP})</div>`}
       </div>
       <div class="infoCard">
+        <div class="big">🧬 עץ כישורים · נקודות: ${S.sp}</div>
+        ${SKILLS.map(s => {
+          const L = sk(s.id), maxed = L >= 5;
+          return `<div class="skillRow">
+            <span class="skIcon">${s.icon}</span>
+            <span class="skName">${s.name}<br><span class="skFx">${s.fx}</span></span>
+            <span class="skPips">${'●'.repeat(L)}${'○'.repeat(5 - L)}</span>
+            <button class="skBuy" data-skill="${s.id}" ${maxed || S.sp < 1 ? 'disabled' : ''}>${maxed ? 'מקס!' : '+1 🧬'}</button>
+          </div>`;
+        }).join('')}
+        <div class="sub">נקודות 🧬 מגיעות מהתפתחות הרובוט, אבני דרך של מעריצים, ומסעות (+3)</div>
+      </div>
+      <div class="infoCard">
+        <div class="big">🏺 אוסף עתיקות (${ARTIFACTS.filter(a => S.artifacts[a.id]).length}/${ARTIFACTS.length}) · בונוס: +${Math.round((collMult() - 1) * 100)}%</div>
+        <div class="artGrid">${ARTIFACTS.map(a => S.artifacts[a.id]
+          ? `<div class="artCell r${a.r}" title="${a.name}">${a.icon}</div>`
+          : `<div class="artCell unk">❓</div>`).join('')}</div>
+        <div class="sub">עתיקות מתגלות במזל 🍀, מטאורים, קריסטלים ומסעות · אוסף מלא: +25% נוסף</div>
+      </div>
+      <div class="infoCard">
         <div class="big">🎯 משימות</div>
         <div>הושלמו ${done} מתוך ${QUESTS.length}</div>
         <div class="sub">המשימה הפעילה מוצגת בפינה למעלה — לחץ עליה לאיסוף הפרס</div>
@@ -2496,6 +2615,19 @@ function renderSheet() {
 
 document.getElementById('sheetX').addEventListener('click', () => closeSheet());
 sheetInner.addEventListener('pointerdown', e => {
+  const skb = e.target.closest('.skBuy');
+  if (skb && !skb.disabled) {
+    ensureAudio();
+    const id = skb.dataset.skill;
+    if (S.sp >= 1 && sk(id) < 5) {
+      S.skills[id] = sk(id) + 1;
+      S.sp--;
+      sfx('buy'); buzz(12);
+      burstConfetti(W / 2, H * 0.35, 16);
+      renderSheet(); refreshHud(); save();
+    }
+    return;
+  }
   const ab = e.target.closest('#autoBtn');
   if (ab) {
     ensureAudio();
@@ -2603,7 +2735,8 @@ function buy(u) {
   burstSparks(p.x, p.y - 40, 12, '#a0c8ff');
   addFloat(p.x, p.y - 90, u.icon + ' ' + u.name + '!', '#a0c8ff', 16);
   if (newTier !== prevTier) {
-    banner(`🤖 הרובוט התפתח: ${newTier.name}!`);
+    S.sp += 1;
+    banner(`🤖 הרובוט התפתח: ${newTier.name}! · +1 🧬 נקודת כישורים`);
     say('וואו! אני מרגיש משודרג! 💪', 3.5);
     sfx('tier');
     flash = 0.5;
@@ -2929,6 +3062,7 @@ function doClick(cx_, cy_) {
         burstCoins(m.x, m.y, 5);
         meteorDrops.splice(i, 1);
         addFans(5);
+        dropArtifact(0.1);
         sfx('coin'); buzz(18);
         popMoney(); refreshHud(); refreshCards(); updateQuest();
         return;
@@ -2947,6 +3081,7 @@ function doClick(cx_, cy_) {
       S.money += back;
       hacker.on = false; events.active = null;
       addFans(20);
+      dropArtifact(0.2);
       banner('🎉 גירשת את ההאקר! החזרת ' + fmt(back) + ' 💰');
       burstConfetti(hacker.x, hacker.y - 20, 30);
       sfx('quest'); buzz([20, 25, 35]);
@@ -2985,17 +3120,17 @@ function doClick(cx_, cy_) {
   robot.sitting = S.energy < 5;
 
   // combo: keep tapping to build up to +100%
-  combo.n = (now - combo.t < 1.5) ? combo.n + 1 : 1;
+  combo.n = (now - combo.t < comboWin()) ? combo.n + 1 : 1;
   combo.t = now;
   if (combo.n === 50) say('קומבו מטורף!! 🔥', 2);
 
-  // ~1 in 10 clicks lands a critical hit worth x3
-  const isCrit = Math.random() < 0.1;
+  // critical hit: base 10% + skill, worth x3
+  const isCrit = Math.random() < 0.1 + 0.02 * sk('crit');
   const gain = perClick() * mult * comboMult() * (isCrit ? 3 : 1);
   earn(gain);
 
-  // lucky drop: 5% of taps trigger a surprise
-  if (Math.random() < 0.05) {
+  // lucky drop: base 5% + skill
+  if (Math.random() < 0.05 + 0.01 * sk('luck')) {
     const r = Math.random();
     const ip2 = impactPoint();
     if (r < 0.6) {
@@ -3011,6 +3146,7 @@ function doClick(cx_, cy_) {
       addFloat(ip2.x, ip2.y - 95, '🍀 אוצר! +' + fmt(treasure), '#6ae06a', 24, -2.5);
       burstCoins(ip2.x, ip2.y, 8);
       sfx('quest');
+      dropArtifact(0.5);
     }
     burstSparks(ip2.x, ip2.y - 60, 8, '#6ae06a');
   }
@@ -3146,12 +3282,12 @@ function update(dt) {
   }
 
   // energy regen
-  const regen = 6 + lvl('reactor') * 2;
+  const regen = 6 + lvl('reactor') * 2 + sk('energy');
   S.energy = Math.min(100, S.energy + regen * dt);
   if (S.energy > 15) robot.sitting = false;
 
   // combo decay
-  if (combo.n > 0 && now - combo.t > 1.5) combo.n = 0;
+  if (combo.n > 0 && now - combo.t > comboWin()) combo.n = 0;
 
   // robot anim timers
   if (robot.hitT > 0) robot.hitT = Math.max(0, robot.hitT - dt * 6);
@@ -3252,6 +3388,7 @@ function update(dt) {
       crackAnim.active = false;
       S.cracked = true;
       S.everCracked = true;
+      dropArtifact(1);
       S.crystalMult = 2;
       mode = 'play';
       const bonus = Math.max(1000 * scaleFactor(), perSec() * 90 + perClick() * 150);
@@ -3387,7 +3524,7 @@ function draw() {
     drawRobot(now);
     drawEventActors(now);
     // combo counter above the robot
-    if (combo.n >= 5 && now - combo.t < 1.5) {
+    if (combo.n >= 5 && now - combo.t < comboWin()) {
       const p = surfacePoint(0);
       const cSize = 16 + Math.min(combo.n, 100) * 0.12;
       const col = combo.n >= 50 ? '#ff5a3a' : combo.n >= 20 ? '#ff9a2e' : '#ffd94a';
@@ -3604,7 +3741,7 @@ if (loaded) {
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
   const ps = perSec();
   if (away > 60 && ps > 0) {
-    const gain = ps * Math.min(away, 14400) * 0.6;
+    const gain = ps * Math.min(away, 14400) * Math.min(1, 0.6 + 0.08 * sk('offline'));
     S.money += gain; S.totalEarned += gain; S.earnedPlanet += gain;
     document.getElementById('offlineAmount').textContent = '💰 +' + fmt(gain);
     document.getElementById('offlineOverlay').classList.add('show');
