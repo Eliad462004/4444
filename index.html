@@ -340,6 +340,9 @@
   .planetOpt .ball { width:84px; height:84px; border-radius:50%; margin:0 auto 10px; box-shadow:inset -14px -12px 24px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.18); }
   .planetOpt .pname { font-weight:700; font-size:16px; }
   .planetOpt .ptag { font-size:12px; color:#ffd94a; margin-top:4px; }
+  .pMech { margin-top:6px; font-size:10.5px; line-height:1.5; }
+  .pPro { color:#7dffb0; }
+  .pCon { color:#ff9a8a; }
   #offlineBox {
     background:linear-gradient(160deg,#1c2246,#0e1030); border:1px solid rgba(130,150,255,.5);
     border-radius:18px; padding:26px 34px; color:#fff; text-align:center; max-width:320px;
@@ -876,10 +879,28 @@ function evoStage(upId) {
 
 const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
 const DEST_PLANETS = [
-  { name:'מאדים האדום', colors:['#5a241a','#94422a','#c9673f'], css:'radial-gradient(circle at 35% 30%, #d9825a, #7a3020 70%)', bonus:{click:2,   auto:1  }, tag:'פי 2 כוח לחיצה' },
-  { name:'כוכב הקרח',   colors:['#16324e','#3f6f96','#9fd2e8'], css:'radial-gradient(circle at 35% 30%, #bfe4f4, #2a5a80 70%)', bonus:{click:1,   auto:2  }, tag:'פי 2 הכנסה אוטומטית' },
-  { name:'כוכב הזהב',   colors:['#57431c','#9a7c2e','#e2c260'], css:'radial-gradient(circle at 35% 30%, #f4dc80, #7a5c20 70%)', bonus:{click:1.5, auto:1.5}, tag:'פי 1.5 לכל ההכנסות' },
+  { id:'mars', name:'מאדים האדום', colors:['#5a241a','#94422a','#c9673f'], css:'radial-gradient(circle at 35% 30%, #d9825a, #7a3020 70%)',
+    bonus:{click:2, auto:1}, tag:'פי 2 כוח לחיצה', weather:'dust',
+    mech:{ eventFreq:2, energyRegen:0.75 },
+    pro:'☄️ אירועים בתדירות כפולה', con:'⚡ אנרגיה מתחדשת לאט ב-25%' },
+  { id:'ice', name:'כוכב הקרח', colors:['#16324e','#3f6f96','#9fd2e8'], css:'radial-gradient(circle at 35% 30%, #bfe4f4, #2a5a80 70%)',
+    bonus:{click:1, auto:2}, tag:'פי 2 הכנסה אוטומטית', weather:'snow',
+    mech:{ offline:1.25, comboWin:-0.3 },
+    pro:'🌙 הכנסה אופליין +25%', con:'🔥 חלון קומבו קצר יותר' },
+  { id:'gold', name:'כוכב הזהב', colors:['#57431c','#9a7c2e','#e2c260'], css:'radial-gradient(circle at 35% 30%, #f4dc80, #7a5c20 70%)',
+    bonus:{click:1.5, auto:1.5}, tag:'פי 1.5 לכל ההכנסות', weather:'gold',
+    mech:{ lucky:2, hackerSteal:1.6 },
+    pro:'🍀 סיכוי מזל כפול', con:'🦹 האקר גונב 60% מהר יותר' },
+  { id:'lava', name:'כוכב הלבה', colors:['#3a120a','#7a2a10','#d84a1e'], css:'radial-gradient(circle at 35% 30%, #ff7a3e, #6a1a08 70%)',
+    bonus:{click:2.5, auto:1}, tag:'פי 2.5 כוח לחיצה', weather:'embers',
+    mech:{ crit:0.05, hackerBias:2 },
+    pro:'💥 +5% סיכוי קריטי', con:'🦹 האקרים תוקפים כפול' },
 ];
+function curBiome() { return DEST_PLANETS.find(p => p.id === S.biome) || null; }
+function biomeMech(key, def) {
+  const b = curBiome();
+  return (b && b.mech[key] !== undefined) ? b.mech[key] : def;
+}
 
 const SAVE_KEY = 'starMiner.save.v1';
 
@@ -892,7 +913,7 @@ function defaultState() {
     energy:100, energyShown:false,
     clicks:0,
     prestClick:1, prestAuto:1,
-    visits:0, planetColors:HOME_PLANET.colors, planetName:HOME_PLANET.name,
+    visits:0, planetColors:HOME_PLANET.colors, planetName:HOME_PLANET.name, biome:'',
     cracked:false, crystalMult:1,
     stage:0, unlocked:{pick:true},
     qDone:{}, curQuest:0, milestoneIdx:0, everCracked:false, everLiving:false,
@@ -1081,6 +1102,54 @@ function rebuildUnits() {
   }
 }
 
+// ---------- biome weather (ambient atmosphere per world) ----------
+let weatherP = [];
+function updateWeather(dt) {
+  const b = curBiome();
+  const type = b ? b.weather : null;
+  if (type && (mode === 'play' || mode === 'crack') && weatherP.length < (REDUCED_MOTION ? 20 : 60) && Math.random() < dt * 22) {
+    if (type === 'dust') {
+      weatherP.push({ t:'dust', x:-20, y:H * (0.35 + Math.random() * 0.45), vx:2.2 + Math.random() * 2.5, vy:(Math.random() - 0.5) * 0.4, life:1, size:6 + Math.random() * 14 });
+    } else if (type === 'snow') {
+      weatherP.push({ t:'snow', x:Math.random() * W, y:-10, vx:(Math.random() - 0.5) * 0.6, vy:0.7 + Math.random() * 0.9, life:1, size:1.5 + Math.random() * 2.5, ph:Math.random() * 7 });
+    } else if (type === 'gold') {
+      weatherP.push({ t:'gold', x:Math.random() * W, y:H * (0.4 + Math.random() * 0.4), vx:(Math.random() - 0.5) * 0.3, vy:-(0.3 + Math.random() * 0.5), life:1, size:1.5 + Math.random() * 2, ph:Math.random() * 7 });
+    } else if (type === 'embers') {
+      weatherP.push({ t:'embers', x:Math.random() * W, y:H * 0.85, vx:(Math.random() - 0.5) * 0.8, vy:-(0.8 + Math.random() * 1.4), life:1, size:1.5 + Math.random() * 2.5, ph:Math.random() * 7 });
+    }
+  }
+  for (const p of weatherP) {
+    p.x += p.vx; p.y += p.vy;
+    p.life -= dt * 0.12;
+    if (p.t === 'snow') p.x += Math.sin(now * 1.5 + p.ph) * 0.5;
+  }
+  weatherP = weatherP.filter(p => p.life > 0 && p.x < W + 30 && p.y < H + 20 && p.y > -30);
+}
+function drawWeather(t) {
+  for (const p of weatherP) {
+    const a = Math.min(1, p.life * 2);
+    if (p.t === 'dust') {
+      ctx.fillStyle = `rgba(210,140,90,${a * 0.16})`;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.size, p.size * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (p.t === 'snow') {
+      ctx.fillStyle = `rgba(240,248,255,${a * 0.8})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+    } else if (p.t === 'gold') {
+      const tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 3 + p.ph));
+      ctx.fillStyle = `rgba(255,220,110,${a * tw})`;
+      ctx.shadowColor = '#ffd94a'; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (p.t === 'embers') {
+      const fl = 0.5 + 0.5 * Math.abs(Math.sin(t * 5 + p.ph));
+      ctx.fillStyle = `rgba(255,${110 + fl * 80},50,${a * 0.85})`;
+      ctx.shadowColor = '#ff7a3e'; ctx.shadowBlur = 5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+}
+
 // ---------- particles / effects ----------
 let particles = [], floats = [], bolts = [], rings = [], impacts = [];
 let shake = 0, flash = 0;
@@ -1156,7 +1225,7 @@ const work = { t:0, boost:0 };
 // combo: consecutive taps within the window each add +1% to click income (cap +100%)
 const combo = { n:0, t:0 };
 function comboMult() { return 1 + Math.min(combo.n, 100) * 0.01; }
-function comboWin() { return 1.5 + 0.15 * sk('combo'); }
+function comboWin() { return Math.max(0.8, 1.5 + 0.15 * sk('combo') + biomeMech('comboWin', 0)); }
 let robotClickStreak = 0, lastRobotClick = 0, lastSpin = -99;
 
 // ---------- golden comet (tap it for a bonus!) ----------
@@ -2046,8 +2115,11 @@ function updateEvents(dt) {
   if (!events.active && !challenge.on && !hacker.on) {
     events.next -= dt;
     if (events.next <= 0) {
-      events.next = 240 + Math.random() * 120; // every ~4-6 minutes
+      // every ~4-6 minutes; on high-activity biomes (Mars) — more often
+      events.next = (240 + Math.random() * 120) / biomeMech('eventFreq', 1);
       const kinds = ['meteors', 'hacker', 'challenge', 'gift'];
+      // lava biome attracts hackers
+      for (let i = 1; i < biomeMech('hackerBias', 1); i++) kinds.push('hacker');
       // the very first event is always a gift — a warm welcome
       const kind = firstEventDone ? kinds[Math.floor(Math.random() * kinds.length)] : 'gift';
       firstEventDone = true;
@@ -2088,7 +2160,7 @@ function updateEvents(dt) {
     if (hacker.y < hacker.landY - 26) {
       hacker.y += 170 * dt;
     } else if (hacker.t < 14) {
-      const steal = S.money * 0.009 * dt;
+      const steal = S.money * 0.009 * biomeMech('hackerSteal', 1) * dt;
       if (S.money > 1) { S.money -= steal; hacker.stolen += steal; }
     }
     if (hacker.t >= 14) {
@@ -2310,6 +2382,8 @@ function landOnPlanet() {
   S.visits++;
   S.planetColors = p.colors;
   S.planetName = p.name;
+  S.biome = p.id;
+  weatherP = [];
   S.levels = {};
   S.energy = 100;
   S.earnedPlanet = 0;
@@ -2637,6 +2711,7 @@ function renderSheet() {
         <div>העידן הנוכחי: ${STAGES[S.stage].name}</div>
         <div class="sub">כוכבים שנכבשו: ${S.visits + 1} · 💎 קריסטל: ${S.cracked ? 'פעיל — הכנסות כפולות!' : 'טרם נחשף'}</div>
         <div class="sub">💠 קריסטלי יוקרה: ${S.pcClaimed} (+${S.pcClaimed * 2}% לנצח) · במסע הבא: +${pcPending()}</div>
+        ${curBiome() ? `<div class="sub">🌡️ אקלים: ${curBiome().pro} · ${curBiome().con}</div>` : ''}
       </div>`;
     if (S.bankUnlocked) {
       html += `
@@ -3236,13 +3311,13 @@ function doClick(cx_, cy_) {
   combo.t = now;
   if (combo.n === 50) say('קומבו מטורף!! 🔥', 2);
 
-  // critical hit: base 10% + skill, worth x3
-  const isCrit = Math.random() < 0.1 + 0.02 * sk('crit');
+  // critical hit: base 10% + skill + biome, worth x3
+  const isCrit = Math.random() < 0.1 + 0.02 * sk('crit') + biomeMech('crit', 0);
   const gain = perClick() * mult * comboMult() * (isCrit ? 3 : 1);
   earn(gain);
 
-  // lucky drop: base 5% + skill
-  if (Math.random() < 0.05 + 0.01 * sk('luck')) {
+  // lucky drop: (base 5% + skill) × biome
+  if (Math.random() < (0.05 + 0.01 * sk('luck')) * biomeMech('lucky', 1)) {
     const r = Math.random();
     const ip2 = impactPoint();
     if (r < 0.6) {
@@ -3393,8 +3468,8 @@ function update(dt) {
     if (document.getElementById('bankOverlay').classList.contains('show')) renderBank();
   }
 
-  // energy regen
-  const regen = 6 + lvl('reactor') * 2 + sk('energy');
+  // energy regen (biome-modified)
+  const regen = (6 + lvl('reactor') * 2 + sk('energy')) * biomeMech('energyRegen', 1);
   S.energy = Math.min(100, S.energy + regen * dt);
   if (S.energy > 15) robot.sitting = false;
 
@@ -3432,6 +3507,9 @@ function update(dt) {
 
   // random events
   updateEvents(dt);
+
+  // biome weather
+  updateWeather(dt);
 
   // Robi's AI brain
   updateAI(dt);
@@ -3547,7 +3625,8 @@ function showPlanetChoices() {
     el.innerHTML = `
       <div class="ball" style="background:${p.css}"></div>
       <div class="pname">${p.name}</div>
-      <div class="ptag">${p.tag}</div>`;
+      <div class="ptag">${p.tag}</div>
+      <div class="pMech"><span class="pPro">${p.pro}</span><br><span class="pCon">${p.con}</span></div>`;
     el.addEventListener('pointerdown', () => chooseDest(p));
     box.appendChild(el);
   }
@@ -3639,6 +3718,7 @@ function draw() {
     ctx.beginPath(); ctx.arc(rp.x, rp.y - 55, 160, 0, Math.PI*2); ctx.fill();
     drawRobot(now);
     drawEventActors(now);
+    drawWeather(now);
     // combo counter above the robot
     if (combo.n >= 5 && now - combo.t < comboWin()) {
       const p = surfacePoint(0);
@@ -3857,7 +3937,7 @@ if (loaded) {
   const away = (Date.now() - (S.lastSeen || Date.now())) / 1000;
   const ps = perSec();
   if (away > 60 && ps > 0) {
-    const gain = ps * Math.min(away, 14400) * Math.min(1, 0.6 + 0.08 * sk('offline'));
+    const gain = ps * Math.min(away, 14400) * Math.min(1, 0.6 + 0.08 * sk('offline')) * biomeMech('offline', 1);
     S.money += gain; S.totalEarned += gain; S.earnedPlanet += gain;
     document.getElementById('offlineAmount').textContent = '💰 +' + fmt(gain);
     document.getElementById('offlineOverlay').classList.add('show');
