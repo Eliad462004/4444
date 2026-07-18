@@ -2736,12 +2736,23 @@ function fmt(n) {
   return Math.floor(n).toString();
 }
 
-let bannerTimer = null;
+// banner queue: simultaneous events (milestone+synergy+tier) show one after another
+let bannerQueue = [], bannerBusy = false, bannerTimer = null;
 function banner(msg) {
-  bannerEl.textContent = msg;
+  bannerQueue.push(msg);
+  if (bannerQueue.length > 3) bannerQueue = bannerQueue.slice(-3); // keep the freshest
+  pumpBanner();
+}
+function pumpBanner() {
+  if (bannerBusy || !bannerQueue.length) return;
+  bannerBusy = true;
+  bannerEl.textContent = bannerQueue.shift();
   bannerEl.classList.add('show');
   clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => bannerEl.classList.remove('show'), 3200);
+  bannerTimer = setTimeout(() => {
+    bannerEl.classList.remove('show');
+    setTimeout(() => { bannerBusy = false; pumpBanner(); }, 350);
+  }, 2600);
 }
 
 // ---------- bottom navigation & sheet ----------
@@ -3076,6 +3087,8 @@ function buy(u) {
   const prevTier = robotTier();
   S.robotXP++;
   const newTier = robotTier();
+  // FTUE: celebrate the very first purchase
+  if (S.robotXP === 1) say('מעולה! ככה בונים אימפריה! 🚀', 3.5);
   // strategic tech-path choice at level 20
   if (!S.specialty && S.robotXP >= 20) {
     document.getElementById('specOverlay').classList.add('show');
@@ -4139,6 +4152,11 @@ if (loaded) {
     S.funds.safe.bal *= Math.min(2, Math.pow(1 + 0.05/60, Math.min(away, 3600)));
   }
   if (S.clicks > 5) tutorialDone = true;
+}
+// FTUE: Robi welcomes a brand-new player
+if (!loaded) {
+  setTimeout(() => say('היי! אני רובי! 🤖', 3.2), 900);
+  setTimeout(() => { if (S.clicks < 3) say('הכוכב הזה מלא אוצרות — לחץ עליו! ⛏️', 4); }, 4600);
 }
 if (S.bankUnlocked) document.getElementById('bankBtn').style.display = '';
 resetDailyQuests();
