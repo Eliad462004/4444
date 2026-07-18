@@ -478,7 +478,20 @@
   }
 
   /* ---- gift popup ---- */
-  #giftBox, #dailyBox {
+  #travelBox { max-width:360px; }
+  #travelBody { padding:14px 20px 22px; }
+  #tvCols { display:flex; gap:10px; margin-bottom:10px; }
+  .tvCol { flex:1; border-radius:12px; padding:8px; font-size:11px; }
+  .tvKeep { background:#e8f8ec; border:2px solid #7cce42; }
+  .tvLose { background:#fdeeee; border:2px solid #f5a0a0; }
+  .tvHead { font-weight:800; font-size:12.5px; margin-bottom:4px; }
+  .tvList { line-height:1.7; color:#3a4a60; font-weight:600; }
+  #tvGain { font-size:14px; font-weight:800; color:#7a5a00; margin-bottom:4px; }
+  #travelNo {
+    display:block; margin:10px auto 0; padding:8px 22px; font-size:14px; font-weight:700;
+    border:none; border-radius:10px; background:#e4e8f0; color:#5a6a90; cursor:pointer; font-family:inherit;
+  }
+  #giftBox, #dailyBox, #travelBox {
     background:linear-gradient(170deg, #f6f9ff, #dfe9ff); color:#1a2440;
     border-radius:22px; padding:0; text-align:center; max-width:320px; min-width:280px;
     overflow:hidden;
@@ -495,14 +508,14 @@
   }
   #giftTitle { font-size:22px; font-weight:800; margin-top:6px; }
   #giftPrize { font-size:16px; font-weight:700; color:#7a5a00; margin-top:8px; }
-  #giftBtn, #dailyBtn {
+  #giftBtn, #dailyBtn, #travelGo {
     margin-top:16px; padding:13px 44px; font-size:20px; font-weight:800;
     border:none; border-radius:16px; cursor:pointer; color:#fff; font-family:inherit;
     background:linear-gradient(180deg, #46d977, #23a34e);
     box-shadow:0 5px 0 #187a38, 0 8px 18px rgba(0,0,0,.35);
     animation:pulseGlow 1.2s infinite alternate;
   }
-  #giftBtn:active, #dailyBtn:active { transform:translateY(3px); box-shadow:0 2px 0 #187a38; }
+  #giftBtn:active, #dailyBtn:active, #travelGo:active { transform:translateY(3px); box-shadow:0 2px 0 #187a38; }
 
   /* ---- robot speech bubble ---- */
   #bubble {
@@ -652,6 +665,27 @@
       <div id="dailyTitle" style="font-size:20px;font-weight:800;margin-top:6px"></div>
       <div id="dailyPrize" style="font-size:15px;font-weight:700;color:#7a5a00;margin-top:8px"></div>
       <button id="dailyBtn">לאסוף! 🎉</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="travelOverlay">
+  <div id="travelBox">
+    <div class="popHead">מסע לכוכב חדש 🚀<button class="popX" id="travelX">✖</button></div>
+    <div id="travelBody">
+      <div id="tvCols">
+        <div class="tvCol tvKeep">
+          <div class="tvHead">✅ נשמר לתמיד</div>
+          <div class="tvList">🦾 רמת רובי · 💠 קריסטלים · 🧬 כישורים<br>🏺 עתיקות · 🎖️ תארים · 👥 מעריצים<br>📈 השקעות בבורסה · 🎨 סקינים</div>
+        </div>
+        <div class="tvCol tvLose">
+          <div class="tvHead">🔄 מתאפס</div>
+          <div class="tvList">🛒 שדרוגים · 🌍 עידן הכוכב<br>💎 קריסטל הכוכב</div>
+        </div>
+      </div>
+      <div id="tvGain"></div>
+      <button id="travelGo">המריאו! 🚀</button>
+      <button id="travelNo">עוד לא</button>
     </div>
   </div>
 </div>
@@ -2422,6 +2456,12 @@ function drawRocket(x, y, angle, scale, flame) {
   ctx.restore();
 }
 
+// prestige confirm: shows exactly what you keep, lose and gain (Peak-End + no accidents)
+function openTravelConfirm() {
+  document.getElementById('tvGain').textContent =
+    '🎁 תקבל: +' + pcPending() + ' 💠 · +3 🧬 · עתיקה 🏺 · בונוס כוכב לבחירתך';
+  document.getElementById('travelOverlay').classList.add('show');
+}
 function startTravel() {
   mode = 'liftoff';
   cine.t = 0;
@@ -2791,6 +2831,19 @@ function renderSheet() {
         <div class="sub">כוכבים שנכבשו: ${S.visits + 1} · 💎 קריסטל: ${S.cracked ? 'פעיל — הכנסות כפולות!' : 'טרם נחשף'}</div>
         <div class="sub">💠 קריסטלי יוקרה: ${S.pcClaimed} (+${S.pcClaimed * 2}% לנצח) · במסע הבא: +${pcPending()}</div>
         ${curBiome() ? `<div class="sub">🌡️ אקלים: ${curBiome().pro} · ${curBiome().con}</div>` : ''}
+      </div>
+      <div class="infoCard">
+        <div class="big">🏛️ המורשת שלי — בונוסים קבועים</div>
+        ${[
+          ['🚀 בונוסי כוכבים', '×' + S.prestClick.toFixed(1) + ' לחיצה · ×' + S.prestAuto.toFixed(1) + ' אוטו', S.prestClick > 1 || S.prestAuto > 1],
+          ['💠 קריסטלי יוקרה (' + S.pcClaimed + ')', '×' + pcMult().toFixed(2), S.pcClaimed > 0],
+          ['🏺 אוסף עתיקות', '×' + collMult().toFixed(2), collMult() > 1],
+          ['🔗 סינרגיות פעילות', '×' + synMult().toFixed(2), synMult() > 1],
+          ['🔬 התמחות', S.specialty ? '×1.5 ' + (S.specialty === 'click' ? 'לחיצה' : 'אוטו') : 'טרם נבחרה', !!S.specialty],
+          ['🧬 כישורי הכנסה', '+' + (sk('mine') * 10) + '% לחיצה · +' + (sk('auto') * 10) + '% אוטו', sk('mine') + sk('auto') > 0],
+          ['💎 קריסטל הכוכב (זמני)', S.cracked ? '×2' : 'טרם נחשף', S.cracked],
+        ].map(([n, v, on]) => `<div class="skillRow"><span class="skName" style="${on ? '' : 'opacity:.45'}">${n}</span><span class="skPips" style="letter-spacing:0;${on ? '' : 'opacity:.45'}">${v}</span></div>`).join('')}
+        <div class="sub" style="font-weight:800;color:#7a5a00">סה"כ מכפיל קבוע: לחיצה ×${(S.prestClick * pcMult() * collMult() * synMult() * (S.specialty === 'click' ? 1.5 : 1) * (1 + 0.1 * sk('mine'))).toFixed(2)} · אוטו ×${(S.prestAuto * pcMult() * collMult() * synMult() * (S.specialty === 'auto' ? 1.5 : 1) * (1 + 0.1 * sk('auto'))).toFixed(2)}</div>
       </div>`;
     if (S.bankUnlocked) {
       html += `
@@ -2946,7 +2999,7 @@ sheetInner.addEventListener('pointerdown', e => {
   if (card.dataset.u) {
     buy(UPGRADES.find(u => u.id === card.dataset.u));
   } else if (card.id === 'travelBtn') {
-    ensureAudio(); startTravel();
+    ensureAudio(); openTravelConfirm();
   } else if (card.id === 'bankOpen') {
     ensureAudio(); renderBank();
     document.getElementById('bankOverlay').classList.add('show');
@@ -3244,6 +3297,17 @@ document.getElementById('bankClose').addEventListener('click', () => {
 });
 document.getElementById('bankX').addEventListener('click', () => {
   document.getElementById('bankOverlay').classList.remove('show');
+});
+document.getElementById('travelGo').addEventListener('click', () => {
+  ensureAudio();
+  document.getElementById('travelOverlay').classList.remove('show');
+  startTravel();
+});
+document.getElementById('travelNo').addEventListener('click', () => {
+  document.getElementById('travelOverlay').classList.remove('show');
+});
+document.getElementById('travelX').addEventListener('click', () => {
+  document.getElementById('travelOverlay').classList.remove('show');
 });
 
 // ---------- money milestones ----------
