@@ -154,10 +154,10 @@
     box-shadow:0 2px 8px rgba(0,0,0,.2);
   }
   .popX {
-    position:absolute; top:6px; inset-inline-end:8px; width:34px; height:34px;
+    position:absolute; top:3px; inset-inline-end:6px; width:42px; height:42px;
     border-radius:50%; border:2.5px solid #fff; cursor:pointer;
     background:radial-gradient(circle at 35% 30%, #ff8a6a, #d02a20);
-    color:#fff; font-size:14px; font-weight:800;
+    color:#fff; font-size:15px; font-weight:800;
     box-shadow:0 3px 8px rgba(0,0,0,.35);
   }
   .popX:active { transform:scale(.88); }
@@ -385,7 +385,7 @@
   .fbal { font-size:12px; color:#4a5a80; margin-top:2px; }
   .fbtns { display:flex; gap:6px; margin-top:8px; }
   .fund button {
-    flex:1; padding:8px 4px; font-size:12.5px; font-weight:800; border-radius:10px; cursor:pointer;
+    flex:1; padding:11px 4px; min-height:42px; font-size:12.5px; font-weight:800; border-radius:10px; cursor:pointer;
     color:#123a00; background:linear-gradient(180deg,#c2f27e,#7cce42 60%,#67bc35);
     border:2px solid #4a9422; border-bottom-width:4px;
     box-shadow:inset 0 2px 0 rgba(255,255,255,.5);
@@ -417,7 +417,7 @@
   .skBuy {
     flex-shrink:0; border:2px solid #4a9422; border-bottom-width:4px; border-radius:10px;
     background:linear-gradient(180deg,#c2f27e,#7cce42); font-weight:800; font-family:inherit;
-    padding:5px 10px; cursor:pointer; color:#123a00; font-size:12px;
+    padding:9px 14px; min-height:40px; cursor:pointer; color:#123a00; font-size:12.5px;
   }
   .skBuy:active { border-bottom-width:2px; transform:translateY(1px); }
   .skBuy[disabled] { opacity:.45; }
@@ -450,7 +450,7 @@
   .rLeg  { border-color:#ffa02e; background:#fff7ea; box-shadow:0 0 6px rgba(255,160,46,.35); }
   .rMyth { border-color:#f04a4a; background:#fff0f0; box-shadow:0 0 8px rgba(240,74,74,.4); }
   .synList { text-align:right; margin-top:4px; }
-  .synRow { font-size:11px; color:#8a90a0; padding:2.5px 0; font-weight:600; }
+  .synRow { font-size:11px; color:#5f6878; padding:2.5px 0; font-weight:600; }
   .synRow.on { color:#1a8a3e; }
 
   /* AI autopilot toggle */
@@ -515,6 +515,19 @@
     content:''; position:absolute; bottom:-8px; left:22px;
     border-width:9px 9px 0 3px; border-style:solid;
     border-color:#fff transparent transparent transparent;
+  }
+
+  /* accessibility: visible keyboard focus (WCAG) */
+  button:focus-visible, .navBtn:focus-visible, .card:focus-visible, .uprow:focus-visible {
+    outline:3px solid #5a8aff; outline-offset:2px;
+  }
+  /* accessibility: honor the system reduced-motion setting */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration:0.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.01ms !important;
+    }
   }
 
   @media (max-width:640px) {
@@ -672,6 +685,8 @@
 
 <script>
 'use strict';
+// honor the OS reduced-motion preference: no screen shake, fewer particles
+const REDUCED_MOTION = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* ================================================================
    כורה הכוכבים — משחק קליקר בחלל
    רובוט עם אישיות, כוכב חי שמתפתח, משימות ומסע בין כוכבים
@@ -1079,7 +1094,8 @@ function skyPoint(a, h) {
 }
 
 function burstRocks(x, y, power) {
-  const n = Math.min(4 + Math.floor(power/2), 16);
+  let n = Math.min(4 + Math.floor(power/2), 16);
+  if (REDUCED_MOTION) n = Math.ceil(n / 3);
   for (let i = 0; i < n; i++) {
     particles.push({
       type:'rock', x, y, vx:(Math.random()-0.5)*7, vy:-(2+Math.random()*6),
@@ -1090,6 +1106,7 @@ function burstRocks(x, y, power) {
   }
 }
 function burstSparks(x, y, n, col) {
+  if (REDUCED_MOTION) n = Math.ceil(n / 3);
   for (let i = 0; i < n; i++) {
     const ang = Math.random()*Math.PI*2, sp = 1+Math.random()*4.5;
     particles.push({ type:'spark', x, y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp-1.5,
@@ -1120,6 +1137,7 @@ function addRing(x, y) {
 }
 const CONFETTI_COLORS = ['#ff5a5a','#ffd94a','#7dffb0','#5ad8ff','#b08aff','#ff9a4a'];
 function burstConfetti(x, y, n) {
+  if (REDUCED_MOTION) n = Math.ceil(n / 3);
   for (let i = 0; i < n; i++) {
     const ang = Math.random()*Math.PI*2, sp = 2+Math.random()*5;
     particles.push({ type:'confetti', x, y, vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp - 3,
@@ -3470,7 +3488,11 @@ function update(dt) {
   impacts = impacts.filter(im => im.life > 0);
 
   shake *= Math.pow(0.03, dt);
-  if (shake < 0.1) shake = 0;
+  if (shake < 0.1 || REDUCED_MOTION) shake = 0;
+
+  // performance budget: hard cap on live particles (oldest dropped first)
+  if (particles.length > 350) particles.splice(0, particles.length - 350);
+  if (floats.length > 60) floats.splice(0, floats.length - 60);
   if (flash > 0) flash = Math.max(0, flash - dt * 0.8);
 
   // ---- cinematics ----
