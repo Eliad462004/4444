@@ -432,6 +432,27 @@
   .artCell.r2 { border-color:#7aa8ff; background:#eaf1ff; }
   .artCell.r3 { border-color:#ffd23e; background:#fff6da; box-shadow:0 0 8px rgba(255,210,62,.5); }
 
+  /* robot codex */
+  .dexGrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin:8px 0; }
+  .dexCell {
+    background:#f8fafd; border:2px solid #c8ccd6; border-radius:12px;
+    padding:7px 4px; text-align:center;
+  }
+  .dexCell.dexOff { opacity:.5; filter:grayscale(.8); }
+  .dexIcon { font-size:24px; }
+  .dexName { font-size:11.5px; font-weight:800; }
+  .dexCls { font-size:9.5px; color:#5a6a90; font-weight:700; }
+  .dexEvo { font-size:9.5px; color:#a07800; margin-top:2px; }
+  .rCom  { border-color:#b8bec8; }
+  .rUnc  { border-color:#6cc93e; }
+  .rRare { border-color:#5a8aff; background:#f0f5ff; }
+  .rEpic { border-color:#a86ae0; background:#f7f0ff; }
+  .rLeg  { border-color:#ffa02e; background:#fff7ea; box-shadow:0 0 6px rgba(255,160,46,.35); }
+  .rMyth { border-color:#f04a4a; background:#fff0f0; box-shadow:0 0 8px rgba(240,74,74,.4); }
+  .synList { text-align:right; margin-top:4px; }
+  .synRow { font-size:11px; color:#8a90a0; padding:2.5px 0; font-weight:600; }
+  .synRow.on { color:#1a8a3e; }
+
   /* AI autopilot toggle */
   #autoBtn {
     margin-top:8px; padding:9px 18px; border-radius:12px; cursor:pointer;
@@ -786,6 +807,58 @@ function dropArtifact(prob) {
   refreshHud();
 }
 
+// ---------- robot synergies (Chapter 6) ----------
+const SYNERGIES = [
+  { id:'dig',    icon:'⛏️', name:'צוות חפירה',   req:'מקוש 3 + כורה 3',      bonus:0.05,
+    check:() => lvl('pick') >= 3 && lvl('miner') >= 3 },
+  { id:'grid',   icon:'⚡', name:'רשת כרייה',    req:'כורה 5 + כור 1',       bonus:0.05,
+    check:() => lvl('miner') >= 5 && lvl('reactor') >= 1 },
+  { id:'air',    icon:'🚀', name:'חיל האוויר',   req:'רחפן 3 + צי 1',        bonus:0.10,
+    check:() => lvl('drone') >= 3 && lvl('fleet') >= 1 },
+  { id:'money',  icon:'📈', name:'כלכלת אנרגיה', req:'כור 5 + השקעה פעילה',  bonus:0.05,
+    check:() => lvl('reactor') >= 5 && (S.funds.safe.bal + S.funds.index.bal + S.funds.turbo.bal) > 0 },
+  { id:'full',   icon:'🛸', name:'צי מלא',       req:'כל 6 השדרוגים ברמה 1+', bonus:0.15,
+    check:() => UPGRADES.every(u => lvl(u.id) >= 1) },
+];
+function synMult() {
+  let b = 0;
+  for (const s of SYNERGIES) if (s.check()) b += s.bonus;
+  return 1 + b;
+}
+function checkSynergies() {
+  for (const s of SYNERGIES) {
+    if (s.check() && !S.synSeen[s.id]) {
+      S.synSeen[s.id] = true;
+      banner('🔗 סינרגיה חדשה: ' + s.icon + ' ' + s.name + ' (+' + Math.round(s.bonus * 100) + '% לכל ההכנסות)');
+      say('הצוות עובד יחד! ' + s.icon, 3.5);
+      burstConfetti(W / 2, H * 0.35, 24);
+      sfx('tier'); buzz(20);
+    }
+  }
+}
+
+// ---------- Robot Codex ----------
+const RARITY = {
+  mythic:    { name:'מיתי',    cls:'rMyth' },
+  legendary: { name:'אגדי',    cls:'rLeg' },
+  epic:      { name:'אפי',     cls:'rEpic' },
+  rare:      { name:'נדיר',    cls:'rRare' },
+  uncommon:  { name:'לא שכיח', cls:'rUnc' },
+  common:    { name:'שכיח',    cls:'rCom' },
+};
+const ROBODEX = [
+  { icon:'🤖', name:'רובי',        cls:'מפקד',     rar:'mythic',    upId:null,      desc:'מתפתח ב-6 דרגות' },
+  { icon:'⛏️', name:'רובוט כורה', cls:'כורה',     rar:'common',    upId:'miner',   desc:'כרייה אוטומטית' },
+  { icon:'🛞', name:'רכב סיור',    cls:'סייר',     rar:'uncommon',  upId:null,      desc:'מופיע בעידן התעשייה' },
+  { icon:'🚁', name:'רחפן כרייה',  cls:'תובלה',    rar:'rare',      upId:'drone',   desc:'כרייה אווירית בלייזר' },
+  { icon:'⚡', name:'כור אנרגיה',  cls:'תמיכה',    rar:'epic',      upId:'reactor', desc:'מחזק את כל הצוות' },
+  { icon:'🛸', name:'צי כרייה',    cls:'תעשייתי',  rar:'legendary', upId:'fleet',   desc:'ייצור המוני מהחלל' },
+];
+function evoStage(upId) {
+  if (!upId) return Math.min(3, TIERS.indexOf(robotTier()) >= 4 ? 3 : Math.floor(TIERS.indexOf(robotTier()) / 2));
+  return Math.min(3, Math.floor(lvl(upId) / 10));
+}
+
 const HOME_PLANET = { name:'הכוכב האפור', colors:['#4a4038','#6a5a4e','#8a7a6a'] };
 const DEST_PLANETS = [
   { name:'מאדים האדום', colors:['#5a241a','#94422a','#c9673f'], css:'radial-gradient(circle at 35% 30%, #d9825a, #7a3020 70%)', bonus:{click:2,   auto:1  }, tag:'פי 2 כוח לחיצה' },
@@ -812,7 +885,7 @@ function defaultState() {
     specialty:null, skins:{def:true}, skin:'def',
     fans:0, fanIdx:0, autopilot:false, autopilotUsed:false,
     pcClaimed:0, dailyStreak:0, lastDaily:'',
-    sp:0, skills:{}, artifacts:{},
+    sp:0, skills:{}, artifacts:{}, synSeen:{},
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -829,7 +902,7 @@ function cost(u) { return Math.ceil(u.base * scaleFactor() * Math.pow(u.growth, 
 function pcEarnedTotal() { return Math.floor(Math.sqrt(S.totalEarned / 100000)); }
 function pcPending() { return Math.max(0, pcEarnedTotal() - S.pcClaimed); }
 function pcMult() { return 1 + 0.02 * S.pcClaimed; }
-function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult * pcMult() * collMult(); }
+function incomeMult() { return (1 + 0.1 * lvl('reactor')) * S.crystalMult * pcMult() * collMult() * synMult(); }
 // every 10 levels an upgrade earns a permanent x1.5 milestone bonus
 function upMult(id) { return Math.pow(1.5, Math.floor(lvl(id) / 10)); }
 function perClick() { return (1 + lvl('pick') * upMult('pick') + 25 * lvl('drill') * upMult('drill')) * incomeMult() * S.prestClick * (S.specialty === 'click' ? 1.5 : 1) * rush.mult * (1 + 0.1 * sk('mine')); }
@@ -2520,6 +2593,25 @@ function renderSheet() {
           </div>
         </div>`;
     }
+    // Robot Codex + synergies
+    html += `
+      <div class="infoCard">
+        <div class="big">📖 רובודקס · בונוס סינרגיות: +${Math.round((synMult() - 1) * 100)}%</div>
+        <div class="dexGrid">${ROBODEX.map(r => {
+          const rar = RARITY[r.rar];
+          const owned = r.upId ? lvl(r.upId) > 0 : (r.name === 'רובי' ? true : S.stage >= 3);
+          const evo = evoStage(r.upId);
+          return `<div class="dexCell ${rar.cls} ${owned ? '' : 'dexOff'}">
+            <div class="dexIcon">${r.icon}</div>
+            <div class="dexName">${r.name}</div>
+            <div class="dexCls">${r.cls} · ${rar.name}</div>
+            <div class="dexEvo">${owned ? (r.upId ? 'רמה ' + lvl(r.upId) + ' · ' : '') + '⭐'.repeat(evo) + '☆'.repeat(3 - evo) : '❓ טרם נפתח'}</div>
+          </div>`;
+        }).join('')}</div>
+        <div class="synList">${SYNERGIES.map(s => `
+          <div class="synRow ${s.check() ? 'on' : ''}">${s.check() ? '✅' : '⬜'} ${s.icon} <b>${s.name}</b> (+${Math.round(s.bonus * 100)}%) — ${s.req}</div>`).join('')}</div>
+        <div class="sub">אבולוציה: ⭐ בכל 10 רמות (עד 3) — כל שלב = ×1.5 קבוע לתפוקה</div>
+      </div>`;
   } else if (curTab === 'world') {
     html += `
       <div class="infoCard">
@@ -2743,6 +2835,7 @@ function buy(u) {
     burstSparks(p.x, p.y - 50, 30, '#ffe27a');
   }
   rebuildUnits();
+  checkSynergies();
   refreshCards();
   refreshHud();
   renderPanel(); // rebuild in case travel unlocked
@@ -2910,6 +3003,7 @@ document.getElementById('fundList').addEventListener('pointerdown', e => {
     S.money -= amt;
     f.bal += amt; f.dep += amt;
     S.everInvested = true;
+    checkSynergies();
     sfx('buy'); buzz(12);
   }
   popMoney(); refreshHud(); refreshCards(); updateQuest(); renderBank(); save();
