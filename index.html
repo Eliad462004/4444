@@ -769,6 +769,81 @@ const SKINS = [
   { id:'stealth', name:'סטלת׳ שחור',  cost:5000000, body:'#5a5a6e', accent:'#16161e' },
 ];
 
+// ---------- daily quests (Chapter 8) ----------
+const DAILYQ = [
+  { id:'taps',   icon:'👆', text:'לחץ 150 פעמים',        goal:150 },
+  { id:'crit',   icon:'💥', text:'פגע 12 מכות קריטיות',  goal:12 },
+  { id:'lucky',  icon:'🍀', text:'הפעל 5 הפתעות מזל',    goal:5 },
+  { id:'meteor', icon:'☄️', text:'תפוס 3 מטאורים',       goal:3 },
+  { id:'buy',    icon:'🛒', text:'קנה 8 שדרוגים',        goal:8 },
+  { id:'invest', icon:'📈', text:'הפקד בבורסה 3 פעמים',  goal:3 },
+  { id:'combo',  icon:'🔥', text:'הגע לקומבו 30',        goal:30, max:true },
+  { id:'events', icon:'🎯', text:'השלם 2 אירועים',       goal:2 },
+];
+function resetDailyQuests() {
+  const today = new Date().toDateString();
+  if (S.dq.date === today) return;
+  let seed = 0;
+  for (const ch of today) seed = (seed * 31 + ch.charCodeAt(0)) % 233280;
+  const pool = DAILYQ.map(q => q.id);
+  const picks = [];
+  for (let i = 0; i < 3; i++) {
+    seed = (seed * 9301 + 49297) % 233280;
+    picks.push(pool.splice(seed % pool.length, 1)[0]);
+  }
+  S.dq = { date: today, picks, c:{}, done:{}, allDone:false };
+}
+function dqCount(id, maxVal) {
+  if (!S.dq.picks || !S.dq.picks.includes(id) || S.dq.done[id]) return;
+  if (maxVal !== undefined) S.dq.c[id] = Math.max(S.dq.c[id] || 0, maxVal);
+  else S.dq.c[id] = (S.dq.c[id] || 0) + 1;
+  const q = DAILYQ.find(x => x.id === id);
+  if (S.dq.c[id] >= q.goal) {
+    S.dq.done[id] = true;
+    const reward = Math.ceil(Math.max(300 * scaleFactor(), perSec() * 240 + perClick() * 60));
+    S.money += reward;
+    addFans(10);
+    banner('📅 משימה יומית הושלמה! ' + q.icon + ' +' + fmt(reward) + ' 💰');
+    sfx('quest'); buzz(20);
+    burstConfetti(W / 2, H * 0.3, 24);
+    if (S.dq.picks.every(p => S.dq.done[p]) && !S.dq.allDone) {
+      S.dq.allDone = true;
+      S.sp += 1;
+      banner('🏆 כל המשימות היומיות הושלמו! +1 🧬');
+      say('יום מושלם! 🌟', 3);
+    }
+    refreshHud();
+  }
+}
+
+// ---------- titles (achievements you wear) ----------
+const TITLES = [
+  { id:'rookie',    name:'כורה מתחיל',        hint:'מתחילים כאן',                 cond:() => true },
+  { id:'combo',     name:'מלך הקומבו 🔥',     hint:'הגע לקומבו 50',               cond:() => S.bestCombo >= 50 },
+  { id:'meteor',    name:'צייד מטאורים ☄️',   hint:'תפוס 10 מטאורים',             cond:() => S.stMeteors >= 10 },
+  { id:'guard',     name:'שומר הכוכב 🛡️',    hint:'גרש 5 האקרים',                cond:() => S.stHackers >= 5 },
+  { id:'tycoon',    name:'טייקון הבורסה 📈',  hint:'הרוויח 25K מהשקעות',          cond:() => S.fundProfitTotal >= 25000 },
+  { id:'explorer',  name:'חוקר גלקסיות 🚀',   hint:'בקר ב-2 כוכבים חדשים',        cond:() => S.visits >= 2 },
+  { id:'collector', name:'אספן אגדי 🏺',      hint:'אסוף 8 עתיקות',               cond:() => Object.keys(S.artifacts).length >= 8 },
+  { id:'legend',    name:'אגדת הכרייה 👑',    hint:'הגע לרמת רובוט 100',          cond:() => S.robotXP >= 100 },
+];
+function checkTitles() {
+  for (const t of TITLES) {
+    if (!S.titles[t.id] && t.cond()) {
+      S.titles[t.id] = true;
+      banner('🎖️ תואר חדש: ' + t.name + '!');
+      say('קיבלתי תואר! ' + t.name, 3.5);
+      burstConfetti(W / 2, H * 0.3, 28);
+      addFans(15);
+      sfx('tier'); buzz(20);
+    }
+  }
+}
+function curTitleName() {
+  const t = TITLES.find(x => x.id === S.title);
+  return t ? t.name : 'כורה מתחיל';
+}
+
 // ---------- skill tree (Layer 5) ----------
 const SKILLS = [
   { id:'mine',    icon:'⛏️', name:'כוח כרייה',      fx:'+10% ללחיצה לרמה' },
@@ -922,6 +997,8 @@ function defaultState() {
     fans:0, fanIdx:0, autopilot:false, autopilotUsed:false,
     pcClaimed:0, dailyStreak:0, lastDaily:'',
     sp:0, skills:{}, artifacts:{}, synSeen:{},
+    dq:{date:'', picks:[], c:{}, done:{}, allDone:false},
+    titles:{rookie:true}, title:'rookie', bestCombo:0, stMeteors:0, stHackers:0,
     funds:{ safe:{bal:0,dep:0}, index:{bal:0,dep:0}, turbo:{bal:0,dep:0} },
     muted:false, lastSeen:Date.now(),
   };
@@ -2102,6 +2179,7 @@ document.getElementById('giftBtn').addEventListener('click', () => {
   events.active = null;
   giftData = null;
   addFans(10);
+  dqCount('events');
   dropArtifact(0.15);
   burstConfetti(W/2, H*0.35, 45);
   flash = 0.3;
@@ -2180,6 +2258,7 @@ function updateEvents(dt) {
       challenge.on = false; events.active = null;
       el.style.display = 'none';
       rush.mult = 2; rush.t = 60;
+      dqCount('events');
       banner('🏆 עמדת באתגר! פי 2 הכנסות לדקה שלמה!');
       flash = 0.4; sfx('quest'); buzz([30, 30, 50]);
       burstConfetti(W/2, H*0.3, 50);
@@ -2592,7 +2671,7 @@ let bubbleTimer = null, lastClickAt = 0, idleNext = 25;
 const IDLE_LINES = ['היי, הכוכב לא יכרה את עצמו! ⛏️', 'משעמם לי פה... בוא נלחץ! 👆', 'יש עוד המון אוצרות מתחתיי! 💎', 'אני מוכן לעבודה! 🤖'];
 const CRIT_LINES = ['בום!! 💥', 'מכה אדירה! 🔥', 'ראית את זה?! ⚡'];
 function say(text, dur, tag) {
-  bubbleEl.innerHTML = '<span class="btag">' + (tag || 'רובי 🤖') + '</span>' + text;
+  bubbleEl.innerHTML = '<span class="btag">' + (tag || ('רובי · ' + curTitleName())) + '</span>' + text;
   bubbleEl.style.display = 'block';
   bubbleEl.style.animation = 'none';
   void bubbleEl.offsetWidth;
@@ -2780,7 +2859,34 @@ function renderSheet() {
         <div class="sub">עתיקות מתגלות במזל 🍀, מטאורים, קריסטלים ומסעות · אוסף מלא: +25% נוסף</div>
       </div>
       <div class="infoCard">
-        <div class="big">🎯 משימות</div>
+        <div class="big">📅 משימות יומיות ${S.dq.picks.filter(p => S.dq.done[p]).length}/3</div>
+        ${S.dq.picks.map(pid => {
+          const q = DAILYQ.find(x => x.id === pid);
+          const c = Math.min(S.dq.c[pid] || 0, q.goal);
+          return `<div class="skillRow">
+            <span class="skIcon">${q.icon}</span>
+            <span class="skName">${q.text}</span>
+            <span class="skPips" style="letter-spacing:0">${S.dq.done[pid] ? '✅' : fmt(c) + ' / ' + fmt(q.goal)}</span>
+          </div>`;
+        }).join('')}
+        <div class="sub">מתחלפות כל יום · השלמת כל השלוש: +1 🧬</div>
+      </div>
+      <div class="infoCard">
+        <div class="big">🎖️ תארים (${TITLES.filter(t => S.titles[t.id]).length}/${TITLES.length})</div>
+        ${TITLES.map(t => {
+          const owned = !!S.titles[t.id], worn = S.title === t.id;
+          return `<div class="skillRow">
+            <span class="skName">${owned ? t.name : '🔒 ' + t.name}<br><span class="skFx">${t.hint}</span></span>
+            ${owned
+              ? (worn ? '<span class="skPips" style="letter-spacing:0">✔ לבוש</span>'
+                      : `<button class="skBuy titleBtn" data-title="${t.id}">לבש</button>`)
+              : ''}
+          </div>`;
+        }).join('')}
+        <div class="sub">התואר הלבוש מופיע בתג של רובי בבועת הדיבור</div>
+      </div>
+      <div class="infoCard">
+        <div class="big">🎯 משימות ראשיות</div>
         <div>הושלמו ${done} מתוך ${QUESTS.length}</div>
         <div class="sub">המשימה הפעילה מוצגת בפינה למעלה — לחץ עליה לאיסוף הפרס</div>
       </div>
@@ -2800,6 +2906,15 @@ function renderSheet() {
 
 document.getElementById('sheetX').addEventListener('click', () => closeSheet());
 sheetInner.addEventListener('pointerdown', e => {
+  const tb = e.target.closest('.titleBtn');
+  if (tb) {
+    ensureAudio();
+    S.title = tb.dataset.title;
+    sfx('buy'); buzz(12);
+    say('מעכשיו תקראו לי ככה! 😎', 3);
+    renderSheet(); save();
+    return;
+  }
   const skb = e.target.closest('.skBuy');
   if (skb && !skb.disabled) {
     ensureAudio();
@@ -2870,7 +2985,8 @@ function updateBadges() {
   for (const sk of SKINS) if (!S.skins[sk.id] && S.money >= sk.cost) skins++;
   setBadge('bdg-skins', skins);
   const q = (S.curQuest >= 0 && !S.qDone[S.curQuest]) ? QUESTS[S.curQuest] : null;
-  setBadge('bdg-brain', q && q.p() >= q.g ? 1 : 0);
+  const dailiesLeft = S.dq.picks ? S.dq.picks.filter(p => !S.dq.done[p]).length : 0;
+  setBadge('bdg-brain', (q && q.p() >= q.g ? 1 : 0) + dailiesLeft);
 }
 
 function renderPanel() {
@@ -2929,6 +3045,7 @@ function buy(u) {
   }
   rebuildUnits();
   checkSynergies();
+  dqCount('buy');
   refreshCards();
   refreshHud();
   renderPanel(); // rebuild in case travel unlocked
@@ -2962,6 +3079,7 @@ function refreshHud() {
       : 'linear-gradient(90deg,#2de0ff,#7dffb0)';
   }
   refreshStageBar();
+  checkTitles();
   updateBadges();
 }
 
@@ -3097,6 +3215,7 @@ document.getElementById('fundList').addEventListener('pointerdown', e => {
     f.bal += amt; f.dep += amt;
     S.everInvested = true;
     checkSynergies();
+    dqCount('invest');
     sfx('buy'); buzz(12);
   }
   popMoney(); refreshHud(); refreshCards(); updateQuest(); renderBank(); save();
@@ -3249,6 +3368,8 @@ function doClick(cx_, cy_) {
         burstCoins(m.x, m.y, 5);
         meteorDrops.splice(i, 1);
         addFans(5);
+        S.stMeteors++;
+        dqCount('meteor');
         dropArtifact(0.1);
         sfx('coin'); buzz(18);
         popMoney(); refreshHud(); refreshCards(); updateQuest();
@@ -3268,6 +3389,8 @@ function doClick(cx_, cy_) {
       S.money += back;
       hacker.on = false; events.active = null;
       addFans(20);
+      S.stHackers++;
+      dqCount('events');
       dropArtifact(0.2);
       banner('🎉 גירשת את ההאקר! החזרת ' + fmt(back) + ' 💰');
       burstConfetti(hacker.x, hacker.y - 20, 30);
@@ -3309,15 +3432,20 @@ function doClick(cx_, cy_) {
   // combo: keep tapping to build up to +100%
   combo.n = (now - combo.t < comboWin()) ? combo.n + 1 : 1;
   combo.t = now;
+  if (combo.n > S.bestCombo) S.bestCombo = combo.n;
   if (combo.n === 50) say('קומבו מטורף!! 🔥', 2);
+  dqCount('taps');
+  dqCount('combo', combo.n);
 
   // critical hit: base 10% + skill + biome, worth x3
   const isCrit = Math.random() < 0.1 + 0.02 * sk('crit') + biomeMech('crit', 0);
+  if (isCrit) dqCount('crit');
   const gain = perClick() * mult * comboMult() * (isCrit ? 3 : 1);
   earn(gain);
 
   // lucky drop: (base 5% + skill) × biome
   if (Math.random() < (0.05 + 0.01 * sk('luck')) * biomeMech('lucky', 1)) {
+    dqCount('lucky');
     const r = Math.random();
     const ip2 = impactPoint();
     if (r < 0.6) {
@@ -3949,6 +4077,8 @@ if (loaded) {
   if (S.clicks > 5) tutorialDone = true;
 }
 if (S.bankUnlocked) document.getElementById('bankBtn').style.display = '';
+resetDailyQuests();
+setInterval(resetDailyQuests, 60000); // date rollover mid-session
 checkDaily(!loaded);
 if (!document.getElementById('offlineOverlay').classList.contains('show')) showDailyIfPending();
 rebuildDecors();
